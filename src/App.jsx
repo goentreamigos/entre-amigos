@@ -65,23 +65,4 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
 
-        <div className="w-full max-w-sm">
-
-          {/* Header */}
-          <h2 className="text-3xl font-bold text-blue-700 mb-1">Bienvenido</h2>
-          <p className="text-gray-500 mb-8">Welcome back</p>
-
-          {/* Email field */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Correo / Email
-            </label>
-            <input
-              type="email"
-              placeholder="tucorreo@email.com"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          {/* Password field */}
-          <div className="mb-6">
+        <div className="w-full max-w
