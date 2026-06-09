@@ -1,61 +1,102 @@
 // =============================================
 // Entre Amigos — App.jsx
 // Main app file — all screens live here
-// Current: Landing screen with login/signup
+// Theme: Navy, Red, Green on Cream background
 // =============================================
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 // ---- Supabase connection ----
-// These values come from your .env file
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
+// ---- Brand colors (from logo) ----
+// Navy: #1B3A6B   Red: #C8202F   Green: #1F8A4C   Cream: #FBF6EC
+
 export default function App() {
-  // Track which screen we're on
   const [screen, setScreen] = useState('landing')
+
+  // ---- LOGO COMPONENT ----
+  // Reusable logo: three speech bubbles with people
+  function Logo({ size = 'large' }) {
+    const dim = size === 'large' ? 'w-40 h-40' : 'w-20 h-20'
+    return (
+      <div className={`${dim} mx-auto mb-4`}>
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          {/* Sparkle lines on top */}
+          <g stroke="#1B3A6B" strokeWidth="3" strokeLinecap="round">
+            <line x1="100" y1="10" x2="100" y2="25" />
+            <line x1="80" y1="15" x2="86" y2="28" />
+            <line x1="120" y1="15" x2="114" y2="28" />
+            <line x1="65" y1="25" x2="75" y2="35" />
+            <line x1="135" y1="25" x2="125" y2="35" />
+          </g>
+          {/* Red speech bubble (left) */}
+          <circle cx="70" cy="90" r="45" fill="#C8202F" />
+          <polygon points="55,125 50,145 75,130" fill="#C8202F" />
+          {/* Green speech bubble (right) */}
+          <circle cx="130" cy="90" r="45" fill="#1F8A4C" />
+          <polygon points="145,125 150,145 125,130" fill="#1F8A4C" />
+          {/* Navy speech bubble (center) */}
+          <circle cx="100" cy="85" r="40" fill="#1B3A6B" />
+          {/* Three people figures (cream) */}
+          <circle cx="70" cy="85" r="8" fill="#FBF6EC" />
+          <path d="M 55 110 Q 70 95 85 110 L 85 125 L 55 125 Z" fill="#FBF6EC" />
+          <circle cx="130" cy="85" r="8" fill="#FBF6EC" />
+          <path d="M 115 110 Q 130 95 145 110 L 145 125 L 115 125 Z" fill="#FBF6EC" />
+          <circle cx="100" cy="78" r="9" fill="#FBF6EC" />
+          <path d="M 83 108 Q 100 90 117 108 L 117 125 L 83 125 Z" fill="#FBF6EC" />
+        </svg>
+      </div>
+    )
+  }
 
   // ---- LANDING SCREEN ----
   if (screen === 'landing') {
     return (
-      <div className="min-h-screen bg-blue-700 flex flex-col items-center justify-center px-6">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#FBF6EC' }}>
+        {/* Logo */}
+        <Logo size="large" />
 
-        {/* Logo / App name */}
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-bold text-white mb-2">Entre Amigos</h1>
-          <p className="text-blue-200 text-lg">Tu comunidad, un solo lugar</p>
-          <p className="text-blue-300 text-sm mt-1">Your community, one place</p>
+        {/* Wordmark */}
+        <h1 className="text-5xl font-serif font-bold mb-2" style={{ color: '#1B3A6B' }}>
+          entre amigos
+        </h1>
+
+        {/* Tagline */}
+        <div className="text-center mb-10 text-sm font-semibold tracking-wide">
+          <span style={{ color: '#C8202F' }}>CONECTAMOS.</span>
+          <span className="mx-2" style={{ color: '#1B3A6B' }}>|</span>
+          <span style={{ color: '#1F8A4C' }}>APOYAMOS.</span>
+          <span className="mx-2" style={{ color: '#1B3A6B' }}>|</span>
+          <span style={{ color: '#1B3A6B' }}>CRECEMOS JUNTOS.</span>
         </div>
 
         {/* Buttons */}
         <div className="w-full max-w-sm flex flex-col gap-4">
-
-          {/* Login button */}
           <button
             onClick={() => setScreen('login')}
-            className="w-full bg-white text-blue-700 font-bold py-4 rounded-2xl text-lg shadow-lg"
+            className="w-full text-white font-bold py-4 rounded-2xl text-lg shadow-lg"
+            style={{ backgroundColor: '#1B3A6B' }}
           >
             Iniciar Sesión / Login
           </button>
-
-          {/* Sign up button */}
           <button
             onClick={() => setScreen('signup')}
-            className="w-full bg-blue-500 text-white font-bold py-4 rounded-2xl text-lg shadow-lg border border-blue-300"
+            className="w-full text-white font-bold py-4 rounded-2xl text-lg shadow-lg"
+            style={{ backgroundColor: '#C8202F' }}
           >
             Crear Cuenta / Sign Up
           </button>
-
         </div>
 
         {/* Footer */}
-        <p className="text-blue-300 text-xs mt-10">
+        <p className="text-xs mt-10" style={{ color: '#1B3A6B' }}>
           Hecho con ❤️ para la comunidad Latina
         </p>
-
       </div>
     )
   }
@@ -63,51 +104,39 @@ export default function App() {
   // ---- LOGIN SCREEN ----
   if (screen === 'login') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
-
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#FBF6EC' }}>
         <div className="w-full max-w-sm">
+          <Logo size="small" />
+          <h2 className="text-3xl font-serif font-bold mb-1 text-center" style={{ color: '#1B3A6B' }}>Bienvenido</h2>
+          <p className="text-gray-500 mb-8 text-center">Welcome back</p>
 
-          {/* Header */}
-          <h2 className="text-3xl font-bold text-blue-700 mb-1">Bienvenido</h2>
-          <p className="text-gray-500 mb-8">Welcome back</p>
-
-          {/* Email field */}
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Correo / Email
-            </label>
+            <label className="block font-semibold mb-1" style={{ color: '#1B3A6B' }}>Correo / Email</label>
             <input
               type="email"
               placeholder="tucorreo@email.com"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
+              className="w-full border rounded-xl px-4 py-3 text-gray-800 focus:outline-none"
+              style={{ borderColor: '#1B3A6B' }}
             />
           </div>
 
-          {/* Password field */}
           <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Contraseña / Password
-            </label>
+            <label className="block font-semibold mb-1" style={{ color: '#1B3A6B' }}>Contraseña / Password</label>
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
+              className="w-full border rounded-xl px-4 py-3 text-gray-800 focus:outline-none"
+              style={{ borderColor: '#1B3A6B' }}
             />
           </div>
 
-          {/* Login button */}
-          <button className="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl text-lg shadow">
+          <button className="w-full text-white font-bold py-4 rounded-2xl text-lg shadow" style={{ backgroundColor: '#1B3A6B' }}>
             Entrar / Login
           </button>
 
-          {/* Back link */}
-          <button
-            onClick={() => setScreen('landing')}
-            className="w-full text-center text-blue-500 mt-4 text-sm"
-          >
+          <button onClick={() => setScreen('landing')} className="w-full text-center mt-4 text-sm" style={{ color: '#C8202F' }}>
             ← Regresar / Back
           </button>
-
         </div>
       </div>
     )
@@ -116,63 +145,49 @@ export default function App() {
   // ---- SIGNUP SCREEN ----
   if (screen === 'signup') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6">
-
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#FBF6EC' }}>
         <div className="w-full max-w-sm">
+          <Logo size="small" />
+          <h2 className="text-3xl font-serif font-bold mb-1 text-center" style={{ color: '#1B3A6B' }}>Crear Cuenta</h2>
+          <p className="text-gray-500 mb-8 text-center">Create your account</p>
 
-          {/* Header */}
-          <h2 className="text-3xl font-bold text-blue-700 mb-1">Crear Cuenta</h2>
-          <p className="text-gray-500 mb-8">Create your account</p>
-
-          {/* Name field */}
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Nombre / Name
-            </label>
+            <label className="block font-semibold mb-1" style={{ color: '#1B3A6B' }}>Nombre / Name</label>
             <input
               type="text"
               placeholder="Tu nombre"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
+              className="w-full border rounded-xl px-4 py-3 text-gray-800 focus:outline-none"
+              style={{ borderColor: '#1B3A6B' }}
             />
           </div>
 
-          {/* Email field */}
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Correo / Email
-            </label>
+            <label className="block font-semibold mb-1" style={{ color: '#1B3A6B' }}>Correo / Email</label>
             <input
               type="email"
               placeholder="tucorreo@email.com"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
+              className="w-full border rounded-xl px-4 py-3 text-gray-800 focus:outline-none"
+              style={{ borderColor: '#1B3A6B' }}
             />
           </div>
 
-          {/* Password field */}
           <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Contraseña / Password
-            </label>
+            <label className="block font-semibold mb-1" style={{ color: '#1B3A6B' }}>Contraseña / Password</label>
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 focus:outline-none focus:border-blue-500"
+              className="w-full border rounded-xl px-4 py-3 text-gray-800 focus:outline-none"
+              style={{ borderColor: '#1B3A6B' }}
             />
           </div>
 
-          {/* Signup button */}
-          <button className="w-full bg-blue-700 text-white font-bold py-4 rounded-2xl text-lg shadow">
+          <button className="w-full text-white font-bold py-4 rounded-2xl text-lg shadow" style={{ backgroundColor: '#C8202F' }}>
             Crear Cuenta / Sign Up
           </button>
 
-          {/* Back link */}
-          <button
-            onClick={() => setScreen('landing')}
-            className="w-full text-center text-blue-500 mt-4 text-sm"
-          >
+          <button onClick={() => setScreen('landing')} className="w-full text-center mt-4 text-sm" style={{ color: '#1B3A6B' }}>
             ← Regresar / Back
           </button>
-
         </div>
       </div>
     )
