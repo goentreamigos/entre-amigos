@@ -1,10 +1,10 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 2C: Timer + auto-broadcast
-//   - Customer can mark a lead as urgent (30min vs 60min deadline)
-//   - Countdown timer shown on assigned leads
-//   - Broadcast leads visible to all approved vendors (first-to-claim wins)
-//   - Missed leads tracked + shown on vendor profile
+// Phase 2D: Review system
+//   - Customer rates vendor after lead is completed (1-5 stars + comment)
+//   - Reviews go to admin moderation queue (pending)
+//   - Approved reviews shown publicly, vendor's avg displayed
+//   - Vendors below 3.5 avg (with 5+ reviews) flagged in admin
 // =============================================
 
 import React, { useState, useEffect, createContext, useContext } from 'react'
@@ -24,23 +24,14 @@ const T = {
     tagline: 'Conectamos. Apoyamos. Crecemos Juntos.',
     welcomeBack: 'Bienvenido',
     welcomeSub: 'Inicia sesión para continuar',
-    email: 'Correo',
-    password: 'Contraseña',
-    signIn: 'Iniciar Sesión',
-    signOut: 'Salir',
-    loading: 'Cargando...',
-    errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    email: 'Correo', password: 'Contraseña',
+    signIn: 'Iniciar Sesión', signOut: 'Salir',
+    loading: 'Cargando...', errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
     inviteOnly: 'Entre Amigos es por invitación. Si te invitaron, usa el enlace que recibiste.',
-    goodDay: 'Hola,',
-    friend: 'Amigo',
+    goodDay: 'Hola,', friend: 'Amigo',
     searchServices: 'Buscar servicios...',
-    services: 'Servicios',
-    history: 'Historial',
-    messages: 'Mensajes',
-    profile: 'Perfil',
-    active: 'Activos',
-    pending: 'Pendiente',
-    rating: 'Calificación',
+    services: 'Servicios', history: 'Historial', messages: 'Mensajes', profile: 'Perfil',
+    active: 'Activos', pending: 'Pendiente', rating: 'Calificación',
     insurance: 'Seguros', insuranceSub: 'Salud · Auto · Vida',
     doctor: 'Médico', doctorSub: 'Atención cercana',
     buyHome: 'Comprar Casa', buyHomeSub: 'Préstamos · Agentes',
@@ -49,126 +40,100 @@ const T = {
     legal: 'Asesoría Legal', legalSub: 'Inmigración · Derechos',
     banking: 'Banca', bankingSub: 'Cuentas · Envíos',
     education: 'Educación', educationSub: 'Escuelas · ESL · GED',
-    adminPanel: 'Panel de Administración',
-    vendorPanel: 'Panel del Proveedor',
-    users: 'Usuarios',
-    noUsers: 'No hay usuarios todavía.',
+    adminPanel: 'Panel de Administración', vendorPanel: 'Panel del Proveedor',
+    users: 'Usuarios', noUsers: 'No hay usuarios todavía.',
     comingSoon: 'Próximamente',
-    inviteUser: 'Invitar Usuario',
-    selectRole: 'Selecciona el rol',
-    generateInvite: 'Generar Invitación',
-    inviteLink: 'Enlace de Invitación',
-    copyLink: 'Copiar Enlace',
-    copied: '¡Copiado!',
-    activeInvites: 'Invitaciones Activas',
-    noInvites: 'No hay invitaciones activas.',
-    used: 'Usado',
-    expired: 'Expirado',
+    inviteUser: 'Invitar Usuario', selectRole: 'Selecciona el rol',
+    generateInvite: 'Generar Invitación', inviteLink: 'Enlace de Invitación',
+    copyLink: 'Copiar Enlace', copied: '¡Copiado!',
+    activeInvites: 'Invitaciones Activas', noInvites: 'No hay invitaciones activas.',
+    used: 'Usado', expired: 'Expirado',
     invalidInvite: 'Invitación inválida o expirada.',
-    fullName: 'Nombre Completo',
-    completeSignup: 'Completar Registro',
-    invitedAs: 'Invitado como',
-    welcomeNew: '¡Bienvenido a Entre Amigos!',
+    fullName: 'Nombre Completo', completeSignup: 'Completar Registro',
+    invitedAs: 'Invitado como', welcomeNew: '¡Bienvenido a Entre Amigos!',
     checkEmail: 'Revisa tu correo para confirmar tu cuenta.',
-    roleOwner: 'Dueño',
-    roleManager: 'Gerente',
-    roleEmployee: 'Empleado',
-    roleVendor: 'Proveedor',
-    roleCustomer: 'Cliente',
-    myCategories: 'Mis Categorías',
-    requestCategory: 'Solicitar Categorías',
+    roleOwner: 'Dueño', roleManager: 'Gerente', roleEmployee: 'Empleado',
+    roleVendor: 'Proveedor', roleCustomer: 'Cliente',
+    myCategories: 'Mis Categorías', requestCategory: 'Solicitar Categorías',
     requestNewCategory: 'Solicitar Categorías',
     selectCategories: 'Selecciona las categorías que ofreces',
-    selectedCount: 'seleccionadas',
-    submitRequest: 'Enviar Solicitud',
-    pendingApproval: 'Pendiente',
-    approved: 'Aprobado',
-    denied: 'Denegado',
+    selectedCount: 'seleccionadas', submitRequest: 'Enviar Solicitud',
+    pendingApproval: 'Pendiente', approved: 'Aprobado', denied: 'Denegado',
     noCategoriesYet: 'Aún no has solicitado categorías. Solicita una para empezar a recibir clientes.',
-    cancelRequest: 'Cancelar',
-    approvalQueue: 'Aprobaciones',
+    cancelRequest: 'Cancelar', approvalQueue: 'Aprobaciones',
     noApprovals: 'No hay solicitudes pendientes.',
-    approveBtn: 'Aprobar',
-    denyBtn: 'Denegar',
-    requestedAt: 'Solicitado',
-    vendor: 'Proveedor',
-    vendors: 'Proveedores',
-    category: 'Categoría',
-    dashboard: 'Inicio',
-    cancel: 'Cancelar',
-    done: 'Hecho',
-    back: '← Regresar',
+    approveBtn: 'Aprobar', denyBtn: 'Denegar',
+    requestedAt: 'Solicitado', vendor: 'Proveedor', vendors: 'Proveedores',
+    category: 'Categoría', dashboard: 'Inicio',
+    cancel: 'Cancelar', done: 'Hecho', back: '← Regresar',
     joinedOn: 'Se unió',
     noPending: 'Sin solicitudes pendientes',
-    noApprovedYet: 'Sin categorías aprobadas',
-    noDeniedYet: 'Sin categorías denegadas',
-    revoke: 'Revocar',
-    confirmRevoke: '¿Estás seguro de revocar esta categoría?',
+    noApprovedYet: 'Sin categorías aprobadas', noDeniedYet: 'Sin categorías denegadas',
+    revoke: 'Revocar', confirmRevoke: '¿Estás seguro de revocar esta categoría?',
     requestService: 'Solicitar Servicio',
-    yourName: 'Tu Nombre',
-    yourPhone: 'Teléfono',
+    yourName: 'Tu Nombre', yourPhone: 'Teléfono',
     tellUsMore: 'Cuéntanos qué necesitas',
     detailsPlaceholder: 'Por ejemplo: Busco seguro para mi auto Honda Civic 2018...',
-    submitLead: 'Enviar Solicitud',
-    leadSent: '¡Solicitud enviada!',
+    submitLead: 'Enviar Solicitud', leadSent: '¡Solicitud enviada!',
     leadSentDesc: 'Hemos asignado un proveedor que te contactará pronto.',
     noVendorsAvailable: 'No hay proveedores aprobados para esta categoría todavía.',
     botPlaceholder: 'Próximamente: chat con asistente IA',
-    myLeads: 'Mis Leads',
-    leads: 'Leads',
+    myLeads: 'Mis Leads', leads: 'Leads',
     noLeads: 'No tienes leads asignados todavía.',
     noLeadsCustomer: 'No has solicitado ningún servicio todavía.',
-    statusNew: 'Nuevo',
-    statusAssigned: 'Asignado',
-    statusClaimed: 'En Progreso',
-    statusQuoted: 'Cotizado',
-    statusCompleted: 'Completado',
-    statusExpired: 'Expirado',
-    statusBroadcast: 'Disponible',
-    claimLead: 'Aceptar',
-    sendQuote: 'Enviar Cotización',
+    statusNew: 'Nuevo', statusAssigned: 'Asignado',
+    statusClaimed: 'En Progreso', statusQuoted: 'Cotizado',
+    statusCompleted: 'Completado', statusExpired: 'Expirado', statusBroadcast: 'Disponible',
+    claimLead: 'Aceptar', sendQuote: 'Enviar Cotización',
     markCompleted: 'Marcar Completado',
-    customer: 'Cliente',
-    assignedTo: 'Asignado a',
+    customer: 'Cliente', assignedTo: 'Asignado a',
     requiredField: 'Campo obligatorio',
-    // ---- Urgency + timer (Phase 2C) ----
     markUrgent: 'Marcar como urgente',
     urgentNote: '⚡ Urgente: el proveedor tendrá 30 minutos en vez de 60',
     urgent: 'URGENTE',
-    timeRemaining: 'Tiempo restante',
-    expiredLabel: 'Tiempo agotado',
+    timeRemaining: 'Tiempo restante', expiredLabel: 'Tiempo agotado',
     availableLeads: 'Leads Disponibles',
     noAvailable: 'No hay leads disponibles ahora.',
     claimNowDesc: 'Acepta rápido — el primero gana',
-    claimNow: 'Aceptar Ahora',
-    claimedByOther: 'Otro proveedor lo aceptó',
-    missedLeads: 'Leads Perdidos',
-    noMissed: 'Sin leads perdidos',
-    missedAt: 'Perdido el',
-    minutes: 'min',
-    hours: 'hrs',
+    claimNow: 'Aceptar Ahora', claimedByOther: 'Otro proveedor lo aceptó',
+    missedLeads: 'Leads Perdidos', noMissed: 'Sin leads perdidos',
+    missedAt: 'Perdido el', minutes: 'min', hours: 'hrs',
+    // ---- Reviews (Phase 2D) ----
+    leaveReview: 'Calificar Servicio',
+    leaveReviewDesc: 'Tu opinión ayuda a otros clientes',
+    starsLabel: 'Calificación',
+    commentLabel: 'Comentario (opcional)',
+    commentPlaceholder: 'Cuéntanos sobre tu experiencia...',
+    submitReview: 'Enviar Calificación',
+    reviewSent: '¡Gracias por tu calificación!',
+    reviewSentDesc: 'Tu calificación está en revisión y aparecerá pronto.',
+    reviewPending: 'Calificación pendiente',
+    rateNow: 'Calificar Ahora',
+    reviews: 'Calificaciones', reviewsTab: 'Reseñas',
+    noReviews: 'Sin calificaciones aprobadas todavía.',
+    noReviewsPending: 'Sin calificaciones pendientes.',
+    moderationQueue: 'Cola de Moderación',
+    rejectReview: 'Rechazar',
+    publishReview: 'Aprobar',
+    flagged: 'Calificación baja',
+    avgRating: 'Promedio',
+    basedOn: 'basado en',
+    review: 'reseña', reviewsPlural: 'reseñas',
+    star: 'estrella', stars: 'estrellas',
+    flaggedVendorWarning: '⚠ Este proveedor tiene calificación baja. Revisa su perfil.',
+    onLead: 'Sobre el servicio',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
-    welcomeBack: 'Welcome back',
-    welcomeSub: 'Sign in to continue',
-    email: 'Email',
-    password: 'Password',
-    signIn: 'Sign In',
-    signOut: 'Sign Out',
-    loading: 'Loading...',
-    errGeneric: 'Something went wrong. Please try again.',
+    welcomeBack: 'Welcome back', welcomeSub: 'Sign in to continue',
+    email: 'Email', password: 'Password',
+    signIn: 'Sign In', signOut: 'Sign Out',
+    loading: 'Loading...', errGeneric: 'Something went wrong. Please try again.',
     inviteOnly: 'Entre Amigos is invite-only. If you were invited, use the link you received.',
-    goodDay: 'Hello,',
-    friend: 'Friend',
+    goodDay: 'Hello,', friend: 'Friend',
     searchServices: 'Search services...',
-    services: 'Services',
-    history: 'History',
-    messages: 'Messages',
-    profile: 'Profile',
-    active: 'Active',
-    pending: 'Pending',
-    rating: 'Rating',
+    services: 'Services', history: 'History', messages: 'Messages', profile: 'Profile',
+    active: 'Active', pending: 'Pending', rating: 'Rating',
     insurance: 'Insurance', insuranceSub: 'Health · Auto · Life',
     doctor: 'Doctor', doctorSub: 'Find care near you',
     buyHome: 'Buy a Home', buyHomeSub: 'Loans · Agents',
@@ -177,126 +142,100 @@ const T = {
     legal: 'Legal Help', legalSub: 'Immigration · Rights',
     banking: 'Banking', bankingSub: 'Accounts · Transfers',
     education: 'Education', educationSub: 'Schools · ESL · GED',
-    adminPanel: 'Admin Dashboard',
-    vendorPanel: 'Vendor Dashboard',
-    users: 'Users',
-    noUsers: 'No users yet.',
+    adminPanel: 'Admin Dashboard', vendorPanel: 'Vendor Dashboard',
+    users: 'Users', noUsers: 'No users yet.',
     comingSoon: 'Coming soon',
-    inviteUser: 'Invite User',
-    selectRole: 'Select role',
-    generateInvite: 'Generate Invite',
-    inviteLink: 'Invite Link',
-    copyLink: 'Copy Link',
-    copied: 'Copied!',
-    activeInvites: 'Active Invites',
-    noInvites: 'No active invites.',
-    used: 'Used',
-    expired: 'Expired',
+    inviteUser: 'Invite User', selectRole: 'Select role',
+    generateInvite: 'Generate Invite', inviteLink: 'Invite Link',
+    copyLink: 'Copy Link', copied: 'Copied!',
+    activeInvites: 'Active Invites', noInvites: 'No active invites.',
+    used: 'Used', expired: 'Expired',
     invalidInvite: 'Invalid or expired invite.',
-    fullName: 'Full Name',
-    completeSignup: 'Complete Signup',
-    invitedAs: 'Invited as',
-    welcomeNew: 'Welcome to Entre Amigos!',
+    fullName: 'Full Name', completeSignup: 'Complete Signup',
+    invitedAs: 'Invited as', welcomeNew: 'Welcome to Entre Amigos!',
     checkEmail: 'Check your email to confirm your account.',
-    roleOwner: 'Owner',
-    roleManager: 'Manager',
-    roleEmployee: 'Employee',
-    roleVendor: 'Vendor',
-    roleCustomer: 'Customer',
-    myCategories: 'My Categories',
-    requestCategory: 'Request Categories',
+    roleOwner: 'Owner', roleManager: 'Manager', roleEmployee: 'Employee',
+    roleVendor: 'Vendor', roleCustomer: 'Customer',
+    myCategories: 'My Categories', requestCategory: 'Request Categories',
     requestNewCategory: 'Request Categories',
     selectCategories: 'Select the categories you offer',
-    selectedCount: 'selected',
-    submitRequest: 'Submit Request',
-    pendingApproval: 'Pending',
-    approved: 'Approved',
-    denied: 'Denied',
+    selectedCount: 'selected', submitRequest: 'Submit Request',
+    pendingApproval: 'Pending', approved: 'Approved', denied: 'Denied',
     noCategoriesYet: 'You haven\'t requested any categories yet. Request one to start receiving leads.',
-    cancelRequest: 'Cancel',
-    approvalQueue: 'Approvals',
+    cancelRequest: 'Cancel', approvalQueue: 'Approvals',
     noApprovals: 'No pending requests.',
-    approveBtn: 'Approve',
-    denyBtn: 'Deny',
-    requestedAt: 'Requested',
-    vendor: 'Vendor',
-    vendors: 'Vendors',
-    category: 'Category',
-    dashboard: 'Dashboard',
-    cancel: 'Cancel',
-    done: 'Done',
-    back: '← Back',
+    approveBtn: 'Approve', denyBtn: 'Deny',
+    requestedAt: 'Requested', vendor: 'Vendor', vendors: 'Vendors',
+    category: 'Category', dashboard: 'Dashboard',
+    cancel: 'Cancel', done: 'Done', back: '← Back',
     joinedOn: 'Joined',
     noPending: 'No pending requests',
-    noApprovedYet: 'No approved categories',
-    noDeniedYet: 'No denied categories',
-    revoke: 'Revoke',
-    confirmRevoke: 'Are you sure you want to revoke this category?',
+    noApprovedYet: 'No approved categories', noDeniedYet: 'No denied categories',
+    revoke: 'Revoke', confirmRevoke: 'Are you sure you want to revoke this category?',
     requestService: 'Request Service',
-    yourName: 'Your Name',
-    yourPhone: 'Phone',
+    yourName: 'Your Name', yourPhone: 'Phone',
     tellUsMore: 'Tell us what you need',
     detailsPlaceholder: 'For example: I\'m looking for insurance for my 2018 Honda Civic...',
-    submitLead: 'Submit Request',
-    leadSent: 'Request sent!',
+    submitLead: 'Submit Request', leadSent: 'Request sent!',
     leadSentDesc: 'We\'ve assigned a vendor who will contact you soon.',
     noVendorsAvailable: 'No approved vendors for this category yet.',
     botPlaceholder: 'Coming soon: chat with AI assistant',
-    myLeads: 'My Leads',
-    leads: 'Leads',
+    myLeads: 'My Leads', leads: 'Leads',
     noLeads: 'No leads assigned to you yet.',
     noLeadsCustomer: 'You haven\'t requested any services yet.',
-    statusNew: 'New',
-    statusAssigned: 'Assigned',
-    statusClaimed: 'In Progress',
-    statusQuoted: 'Quoted',
-    statusCompleted: 'Completed',
-    statusExpired: 'Expired',
-    statusBroadcast: 'Available',
-    claimLead: 'Accept',
-    sendQuote: 'Send Quote',
+    statusNew: 'New', statusAssigned: 'Assigned',
+    statusClaimed: 'In Progress', statusQuoted: 'Quoted',
+    statusCompleted: 'Completed', statusExpired: 'Expired', statusBroadcast: 'Available',
+    claimLead: 'Accept', sendQuote: 'Send Quote',
     markCompleted: 'Mark Completed',
-    customer: 'Customer',
-    assignedTo: 'Assigned to',
+    customer: 'Customer', assignedTo: 'Assigned to',
     requiredField: 'Required field',
-    // ---- Urgency + timer (Phase 2C) ----
     markUrgent: 'Mark as urgent',
     urgentNote: '⚡ Urgent: vendor has 30 minutes instead of 60',
     urgent: 'URGENT',
-    timeRemaining: 'Time left',
-    expiredLabel: 'Time expired',
+    timeRemaining: 'Time left', expiredLabel: 'Time expired',
     availableLeads: 'Available Leads',
     noAvailable: 'No available leads right now.',
     claimNowDesc: 'Claim fast — first one wins',
-    claimNow: 'Claim Now',
-    claimedByOther: 'Another vendor claimed it',
-    missedLeads: 'Missed Leads',
-    noMissed: 'No missed leads',
-    missedAt: 'Missed on',
-    minutes: 'min',
-    hours: 'hrs',
+    claimNow: 'Claim Now', claimedByOther: 'Another vendor claimed it',
+    missedLeads: 'Missed Leads', noMissed: 'No missed leads',
+    missedAt: 'Missed on', minutes: 'min', hours: 'hrs',
+    // ---- Reviews (Phase 2D) ----
+    leaveReview: 'Rate Service',
+    leaveReviewDesc: 'Your feedback helps other customers',
+    starsLabel: 'Rating',
+    commentLabel: 'Comment (optional)',
+    commentPlaceholder: 'Tell us about your experience...',
+    submitReview: 'Submit Review',
+    reviewSent: 'Thanks for your review!',
+    reviewSentDesc: 'Your review is under review and will appear soon.',
+    reviewPending: 'Review pending',
+    rateNow: 'Rate Now',
+    reviews: 'Reviews', reviewsTab: 'Reviews',
+    noReviews: 'No approved reviews yet.',
+    noReviewsPending: 'No pending reviews.',
+    moderationQueue: 'Moderation Queue',
+    rejectReview: 'Reject',
+    publishReview: 'Approve',
+    flagged: 'Low rating',
+    avgRating: 'Average',
+    basedOn: 'based on',
+    review: 'review', reviewsPlural: 'reviews',
+    star: 'star', stars: 'stars',
+    flaggedVendorWarning: '⚠ This vendor has a low rating. Review their profile.',
+    onLead: 'On lead',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
-    welcomeBack: 'Bem-vindo',
-    welcomeSub: 'Entre para continuar',
-    email: 'E-mail',
-    password: 'Senha',
-    signIn: 'Entrar',
-    signOut: 'Sair',
-    loading: 'Carregando...',
-    errGeneric: 'Algo deu errado. Tente novamente.',
+    welcomeBack: 'Bem-vindo', welcomeSub: 'Entre para continuar',
+    email: 'E-mail', password: 'Senha',
+    signIn: 'Entrar', signOut: 'Sair',
+    loading: 'Carregando...', errGeneric: 'Algo deu errado. Tente novamente.',
     inviteOnly: 'Entre Amigos é por convite. Se você foi convidado, use o link recebido.',
-    goodDay: 'Olá,',
-    friend: 'Amigo',
+    goodDay: 'Olá,', friend: 'Amigo',
     searchServices: 'Buscar serviços...',
-    services: 'Serviços',
-    history: 'Histórico',
-    messages: 'Mensagens',
-    profile: 'Perfil',
-    active: 'Ativos',
-    pending: 'Pendente',
-    rating: 'Avaliação',
+    services: 'Serviços', history: 'Histórico', messages: 'Mensagens', profile: 'Perfil',
+    active: 'Ativos', pending: 'Pendente', rating: 'Avaliação',
     insurance: 'Seguro', insuranceSub: 'Saúde · Auto · Vida',
     doctor: 'Médico', doctorSub: 'Cuidado perto de você',
     buyHome: 'Comprar Casa', buyHomeSub: 'Empréstimos · Agentes',
@@ -305,104 +244,88 @@ const T = {
     legal: 'Ajuda Jurídica', legalSub: 'Imigração · Direitos',
     banking: 'Banco', bankingSub: 'Contas · Transferências',
     education: 'Educação', educationSub: 'Escolas · ESL · GED',
-    adminPanel: 'Painel Administrativo',
-    vendorPanel: 'Painel do Fornecedor',
-    users: 'Usuários',
-    noUsers: 'Nenhum usuário ainda.',
+    adminPanel: 'Painel Administrativo', vendorPanel: 'Painel do Fornecedor',
+    users: 'Usuários', noUsers: 'Nenhum usuário ainda.',
     comingSoon: 'Em breve',
-    inviteUser: 'Convidar Usuário',
-    selectRole: 'Selecione a função',
-    generateInvite: 'Gerar Convite',
-    inviteLink: 'Link de Convite',
-    copyLink: 'Copiar Link',
-    copied: 'Copiado!',
-    activeInvites: 'Convites Ativos',
-    noInvites: 'Nenhum convite ativo.',
-    used: 'Usado',
-    expired: 'Expirado',
+    inviteUser: 'Convidar Usuário', selectRole: 'Selecione a função',
+    generateInvite: 'Gerar Convite', inviteLink: 'Link de Convite',
+    copyLink: 'Copiar Link', copied: 'Copiado!',
+    activeInvites: 'Convites Ativos', noInvites: 'Nenhum convite ativo.',
+    used: 'Usado', expired: 'Expirado',
     invalidInvite: 'Convite inválido ou expirado.',
-    fullName: 'Nome Completo',
-    completeSignup: 'Completar Cadastro',
-    invitedAs: 'Convidado como',
-    welcomeNew: 'Bem-vindo ao Entre Amigos!',
+    fullName: 'Nome Completo', completeSignup: 'Completar Cadastro',
+    invitedAs: 'Convidado como', welcomeNew: 'Bem-vindo ao Entre Amigos!',
     checkEmail: 'Verifique seu e-mail para confirmar sua conta.',
-    roleOwner: 'Dono',
-    roleManager: 'Gerente',
-    roleEmployee: 'Funcionário',
-    roleVendor: 'Fornecedor',
-    roleCustomer: 'Cliente',
-    myCategories: 'Minhas Categorias',
-    requestCategory: 'Solicitar Categorias',
+    roleOwner: 'Dono', roleManager: 'Gerente', roleEmployee: 'Funcionário',
+    roleVendor: 'Fornecedor', roleCustomer: 'Cliente',
+    myCategories: 'Minhas Categorias', requestCategory: 'Solicitar Categorias',
     requestNewCategory: 'Solicitar Categorias',
     selectCategories: 'Selecione as categorias que você oferece',
-    selectedCount: 'selecionadas',
-    submitRequest: 'Enviar Solicitação',
-    pendingApproval: 'Pendente',
-    approved: 'Aprovado',
-    denied: 'Negado',
+    selectedCount: 'selecionadas', submitRequest: 'Enviar Solicitação',
+    pendingApproval: 'Pendente', approved: 'Aprovado', denied: 'Negado',
     noCategoriesYet: 'Você ainda não solicitou categorias. Solicite uma para começar a receber clientes.',
-    cancelRequest: 'Cancelar',
-    approvalQueue: 'Aprovações',
+    cancelRequest: 'Cancelar', approvalQueue: 'Aprovações',
     noApprovals: 'Nenhuma solicitação pendente.',
-    approveBtn: 'Aprovar',
-    denyBtn: 'Negar',
-    requestedAt: 'Solicitado',
-    vendor: 'Fornecedor',
-    vendors: 'Fornecedores',
-    category: 'Categoria',
-    dashboard: 'Início',
-    cancel: 'Cancelar',
-    done: 'Pronto',
-    back: '← Voltar',
+    approveBtn: 'Aprovar', denyBtn: 'Negar',
+    requestedAt: 'Solicitado', vendor: 'Fornecedor', vendors: 'Fornecedores',
+    category: 'Categoria', dashboard: 'Início',
+    cancel: 'Cancelar', done: 'Pronto', back: '← Voltar',
     joinedOn: 'Entrou em',
     noPending: 'Sem solicitações pendentes',
-    noApprovedYet: 'Sem categorias aprovadas',
-    noDeniedYet: 'Sem categorias negadas',
-    revoke: 'Revogar',
-    confirmRevoke: 'Tem certeza que deseja revogar esta categoria?',
+    noApprovedYet: 'Sem categorias aprovadas', noDeniedYet: 'Sem categorias negadas',
+    revoke: 'Revogar', confirmRevoke: 'Tem certeza que deseja revogar esta categoria?',
     requestService: 'Solicitar Serviço',
-    yourName: 'Seu Nome',
-    yourPhone: 'Telefone',
+    yourName: 'Seu Nome', yourPhone: 'Telefone',
     tellUsMore: 'Conte-nos o que precisa',
     detailsPlaceholder: 'Por exemplo: Procuro seguro para meu Honda Civic 2018...',
-    submitLead: 'Enviar Solicitação',
-    leadSent: 'Solicitação enviada!',
+    submitLead: 'Enviar Solicitação', leadSent: 'Solicitação enviada!',
     leadSentDesc: 'Atribuímos um fornecedor que entrará em contato em breve.',
     noVendorsAvailable: 'Nenhum fornecedor aprovado para esta categoria ainda.',
     botPlaceholder: 'Em breve: chat com assistente de IA',
-    myLeads: 'Minhas Solicitações',
-    leads: 'Solicitações',
+    myLeads: 'Minhas Solicitações', leads: 'Solicitações',
     noLeads: 'Nenhuma solicitação atribuída a você ainda.',
     noLeadsCustomer: 'Você ainda não solicitou nenhum serviço.',
-    statusNew: 'Novo',
-    statusAssigned: 'Atribuído',
-    statusClaimed: 'Em Andamento',
-    statusQuoted: 'Cotado',
-    statusCompleted: 'Concluído',
-    statusExpired: 'Expirado',
-    statusBroadcast: 'Disponível',
-    claimLead: 'Aceitar',
-    sendQuote: 'Enviar Cotação',
+    statusNew: 'Novo', statusAssigned: 'Atribuído',
+    statusClaimed: 'Em Andamento', statusQuoted: 'Cotado',
+    statusCompleted: 'Concluído', statusExpired: 'Expirado', statusBroadcast: 'Disponível',
+    claimLead: 'Aceitar', sendQuote: 'Enviar Cotação',
     markCompleted: 'Marcar Concluído',
-    customer: 'Cliente',
-    assignedTo: 'Atribuído a',
+    customer: 'Cliente', assignedTo: 'Atribuído a',
     requiredField: 'Campo obrigatório',
-    // ---- Urgency + timer (Phase 2C) ----
     markUrgent: 'Marcar como urgente',
     urgentNote: '⚡ Urgente: fornecedor terá 30 minutos em vez de 60',
     urgent: 'URGENTE',
-    timeRemaining: 'Tempo restante',
-    expiredLabel: 'Tempo esgotado',
+    timeRemaining: 'Tempo restante', expiredLabel: 'Tempo esgotado',
     availableLeads: 'Leads Disponíveis',
     noAvailable: 'Nenhum lead disponível agora.',
     claimNowDesc: 'Aceite rápido — o primeiro ganha',
-    claimNow: 'Aceitar Agora',
-    claimedByOther: 'Outro fornecedor aceitou',
-    missedLeads: 'Leads Perdidos',
-    noMissed: 'Nenhum lead perdido',
-    missedAt: 'Perdido em',
-    minutes: 'min',
-    hours: 'hrs',
+    claimNow: 'Aceitar Agora', claimedByOther: 'Outro fornecedor aceitou',
+    missedLeads: 'Leads Perdidos', noMissed: 'Nenhum lead perdido',
+    missedAt: 'Perdido em', minutes: 'min', hours: 'hrs',
+    // ---- Reviews (Phase 2D) ----
+    leaveReview: 'Avaliar Serviço',
+    leaveReviewDesc: 'Sua opinião ajuda outros clientes',
+    starsLabel: 'Avaliação',
+    commentLabel: 'Comentário (opcional)',
+    commentPlaceholder: 'Conte-nos sobre sua experiência...',
+    submitReview: 'Enviar Avaliação',
+    reviewSent: 'Obrigado pela sua avaliação!',
+    reviewSentDesc: 'Sua avaliação está em revisão e aparecerá em breve.',
+    reviewPending: 'Avaliação pendente',
+    rateNow: 'Avaliar Agora',
+    reviews: 'Avaliações', reviewsTab: 'Avaliações',
+    noReviews: 'Sem avaliações aprovadas ainda.',
+    noReviewsPending: 'Sem avaliações pendentes.',
+    moderationQueue: 'Fila de Moderação',
+    rejectReview: 'Rejeitar',
+    publishReview: 'Aprovar',
+    flagged: 'Avaliação baixa',
+    avgRating: 'Média',
+    basedOn: 'baseado em',
+    review: 'avaliação', reviewsPlural: 'avaliações',
+    star: 'estrela', stars: 'estrelas',
+    flaggedVendorWarning: '⚠ Este fornecedor tem avaliação baixa. Revise o perfil.',
+    onLead: 'Sobre o serviço',
   },
 }
 
@@ -410,14 +333,10 @@ const LangContext = createContext({ lang: 'es', t: T.es, setLang: () => {} })
 const useLang = () => useContext(LangContext)
 
 const TILES = [
-  { key: 'insurance', icon: '🛡️' },
-  { key: 'doctor', icon: '🩺' },
-  { key: 'buyHome', icon: '🏠' },
-  { key: 'renting', icon: '🏢' },
-  { key: 'mechanic', icon: '🔧' },
-  { key: 'legal', icon: '⚖️' },
-  { key: 'banking', icon: '🏦' },
-  { key: 'education', icon: '🎓' },
+  { key: 'insurance', icon: '🛡️' }, { key: 'doctor', icon: '🩺' },
+  { key: 'buyHome', icon: '🏠' }, { key: 'renting', icon: '🏢' },
+  { key: 'mechanic', icon: '🔧' }, { key: 'legal', icon: '⚖️' },
+  { key: 'banking', icon: '🏦' }, { key: 'education', icon: '🎓' },
 ]
 
 function generateInviteCode() {
@@ -430,7 +349,6 @@ function fmtDate(d) {
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-// Format remaining time (deadline - now) as "Xm Ys" or "Xh Ym"
 function fmtCountdown(deadlineIso, t) {
   if (!deadlineIso) return ''
   const diff = new Date(deadlineIso) - new Date()
@@ -469,6 +387,27 @@ function Logo({ size = 'large' }) {
         <circle cx="100" cy="78" r="9" fill="#FBF6EC" />
         <path d="M 83 108 Q 100 90 117 108 L 117 125 L 83 125 Z" fill="#FBF6EC" />
       </svg>
+    </div>
+  )
+}
+
+// ---- Star display + picker components ----
+// readonly = show stars only (used in review lists)
+// interactive = clickable stars (used in submit form)
+function StarRating({ value, onChange, size = 'md', readonly = false }) {
+  const sizes = { sm: 14, md: 24, lg: 36 }
+  const fs = sizes[size]
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n}
+          disabled={readonly}
+          onClick={() => !readonly && onChange && onChange(n)}
+          className={readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110 transition'}
+          style={{ fontSize: fs, color: n <= value ? '#E8A020' : '#d0d0d0', background: 'none', border: 'none', padding: 0 }}>
+          ★
+        </button>
+      ))}
     </div>
   )
 }
@@ -687,11 +626,7 @@ function InviteSignupScreen({ inviteCode }) {
     finally { setBusy(false) }
   }
 
-  if (checking) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
-      <div className="text-gray-400">{t.loading}</div>
-    </div>
-  }
+  if (checking) return <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}><div className="text-gray-400">{t.loading}</div></div>
 
   if (!valid) {
     return (
@@ -786,30 +721,87 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
-// LEAD REQUEST MODAL — now with urgent toggle
+// REVIEW MODAL — customer rates the vendor after a completed lead
+// =============================================
+function ReviewModal({ lead, profile, onClose, onSuccess }) {
+  const { t } = useLang()
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit() {
+    if (rating === 0) { setError(t.requiredField); return }
+    setError('')
+    setBusy(true)
+    const { error } = await supabase.from('reviews').insert({
+      lead_id: lead.id,
+      vendor_id: lead.assigned_vendor_id,
+      customer_id: profile.id,
+      rating,
+      comment: comment || null,
+      status: 'pending',
+    })
+    setBusy(false)
+    if (error) { setError(error.message); return }
+    onSuccess()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+        <h3 className="text-lg font-bold mb-1" style={{ color: '#1B3A6B' }}>{t.leaveReview}</h3>
+        <p className="text-xs text-gray-500 mb-4">{t.leaveReviewDesc}</p>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#1B3A6B' }}>{t.starsLabel}</label>
+          <div className="flex justify-center py-2">
+            <StarRating value={rating} onChange={setRating} size="lg" />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.commentLabel}</label>
+          <textarea value={comment} onChange={(e) => setComment(e.target.value)}
+            rows={3}
+            className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none resize-none"
+            style={{ borderColor: '#e0e0e0' }} placeholder={t.commentPlaceholder} />
+        </div>
+
+        {error && <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>}
+
+        <button onClick={submit} disabled={busy || rating === 0}
+          className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40 mb-2"
+          style={{ backgroundColor: '#C8202F' }}>
+          {busy ? t.loading : t.submitReview}
+        </button>
+        <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================
+// LEAD REQUEST MODAL
 // =============================================
 function LeadRequestModal({ profile, category, onClose, onSuccess }) {
   const { t } = useLang()
   const [name, setName] = useState(profile?.full_name || '')
   const [phone, setPhone] = useState('')
   const [details, setDetails] = useState('')
-  const [urgent, setUrgent] = useState(false) // NEW: urgent toggle
+  const [urgent, setUrgent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   async function submit() {
     setError('')
-    if (!name || !phone || !details) {
-      setError(t.requiredField); return
-    }
+    if (!name || !phone || !details) { setError(t.requiredField); return }
     setBusy(true)
     try {
-      // Step 1: get next round-robin vendor
       const { data: vendorId, error: rpcErr } = await supabase
         .rpc('assign_next_vendor', { p_category_id: category.id })
       if (rpcErr) throw rpcErr
 
-      // Step 2: insert the lead with urgency flag
       const leadRow = {
         customer_id: profile.id,
         category_id: category.id,
@@ -820,17 +812,12 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
         assigned_vendor_id: vendorId || null,
         assigned_at: vendorId ? new Date().toISOString() : null,
         status: vendorId ? 'assigned' : 'new',
-        // claim_deadline is set automatically by DB trigger
       }
       const { error: insertErr } = await supabase.from('leads').insert(leadRow)
       if (insertErr) throw insertErr
-
       onSuccess(vendorId)
-    } catch (e) {
-      setError(e.message || t.errGeneric)
-    } finally {
-      setBusy(false)
-    }
+    } catch (e) { setError(e.message || t.errGeneric) }
+    finally { setBusy(false) }
   }
 
   return (
@@ -869,7 +856,6 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
             style={{ borderColor: '#e0e0e0' }} placeholder={t.detailsPlaceholder} />
         </div>
 
-        {/* Urgent toggle */}
         <button onClick={() => setUrgent(!urgent)}
           className="w-full border rounded-xl p-3 flex items-center gap-3 text-left transition mb-2"
           style={urgent
@@ -905,15 +891,18 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
 }
 
 // =============================================
-// CUSTOMER HOME
+// CUSTOMER HOME (now shows "Rate Now" on completed leads)
 // =============================================
 function CustomerHome({ profile }) {
   const { t } = useLang()
   const [tab, setTab] = useState('services')
   const [categories, setCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
+  const [myReviewLeadIds, setMyReviewLeadIds] = useState([]) // leads I've reviewed
   const [leadModalCategory, setLeadModalCategory] = useState(null)
+  const [reviewLead, setReviewLead] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
+  const [reviewSuccess, setReviewSuccess] = useState(false)
   const displayName = profile?.full_name || t.friend
 
   const tileStyles = [
@@ -923,7 +912,7 @@ function CustomerHome({ profile }) {
     { color: '#E8A020', bg: '#FFF3DC' },
   ]
 
-  useEffect(() => { loadCategories(); loadLeads() }, [])
+  useEffect(() => { loadCategories(); loadLeads(); loadMyReviews() }, [])
 
   async function loadCategories() {
     const { data } = await supabase.from('categories').select('*').eq('active', true)
@@ -937,6 +926,11 @@ function CustomerHome({ profile }) {
     if (data) setMyLeads(data)
   }
 
+  async function loadMyReviews() {
+    const { data } = await supabase.from('reviews').select('lead_id').eq('customer_id', profile.id)
+    if (data) setMyReviewLeadIds(data.map((r) => r.lead_id))
+  }
+
   function handleTileClick(tileKey) {
     const cat = categories.find((c) => c.key === tileKey)
     if (cat) setLeadModalCategory(cat)
@@ -946,6 +940,12 @@ function CustomerHome({ profile }) {
     setLeadModalCategory(null)
     setSuccessMsg({ vendorId })
     loadLeads()
+  }
+
+  function handleReviewSuccess() {
+    setReviewLead(null)
+    setReviewSuccess(true)
+    loadMyReviews()
   }
 
   const activeCount = myLeads.filter(l => ['assigned', 'claimed', 'quoted'].includes(l.status)).length
@@ -1022,6 +1022,8 @@ function CustomerHome({ profile }) {
                 {myLeads.map((lead) => {
                   const catKey = lead.categories?.key
                   const badge = leadStatusBadge(lead.status, t)
+                  const canReview = lead.status === 'completed' && lead.assigned_vendor_id && !myReviewLeadIds.includes(lead.id)
+                  const alreadyReviewed = myReviewLeadIds.includes(lead.id)
                   return (
                     <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
                       <div className="flex justify-between items-start mb-2">
@@ -1037,7 +1039,19 @@ function CustomerHome({ profile }) {
                         </div>
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
                       </div>
-                      {lead.details && <p className="text-xs text-gray-600 mt-1">{lead.details}</p>}
+                      {lead.details && <p className="text-xs text-gray-600 mt-1 mb-2">{lead.details}</p>}
+
+                      {/* Show review button or 'already reviewed' note */}
+                      {canReview && (
+                        <button onClick={() => setReviewLead(lead)}
+                          className="w-full py-2 rounded-lg text-white text-xs font-semibold mt-2"
+                          style={{ backgroundColor: '#E8A020' }}>
+                          ⭐ {t.rateNow}
+                        </button>
+                      )}
+                      {alreadyReviewed && lead.status === 'completed' && (
+                        <p className="text-xs text-center mt-2" style={{ color: '#1F8A4C' }}>✓ {t.reviewPending}</p>
+                      )}
                     </div>
                   )
                 })}
@@ -1073,6 +1087,27 @@ function CustomerHome({ profile }) {
           onSuccess={handleLeadSuccess} />
       )}
 
+      {reviewLead && (
+        <ReviewModal lead={reviewLead} profile={profile}
+          onClose={() => setReviewLead(null)} onSuccess={handleReviewSuccess} />
+      )}
+
+      {/* Review success */}
+      {reviewSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-3xl" style={{ background: '#1F8A4C' }}>✓</div>
+            <h3 className="text-lg font-bold mb-2" style={{ color: '#1B3A6B' }}>{t.reviewSent}</h3>
+            <p className="text-sm text-gray-500 mb-4">{t.reviewSentDesc}</p>
+            <button onClick={() => setReviewSuccess(false)}
+              className="w-full py-3 rounded-xl text-white font-semibold text-sm"
+              style={{ backgroundColor: '#1B3A6B' }}>
+              {t.done}
+            </button>
+          </div>
+        </div>
+      )}
+
       {successMsg && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
@@ -1099,11 +1134,11 @@ function CustomerHome({ profile }) {
 }
 
 // =============================================
-// COUNTDOWN — live updating timer component
+// COUNTDOWN component
 // =============================================
 function Countdown({ deadline }) {
   const { t } = useLang()
-  const [_, setTick] = useState(0) // dummy state to force re-render every second
+  const [_, setTick] = useState(0)
   useEffect(() => {
     const interval = setInterval(() => setTick((n) => n + 1), 1000)
     return () => clearInterval(interval)
@@ -1118,7 +1153,7 @@ function Countdown({ deadline }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD — adds Available Leads section + countdowns
+// VENDOR DASHBOARD — now shows their own rating
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
@@ -1127,6 +1162,7 @@ function VendorDashboard({ profile }) {
   const [allCategories, setAllCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
   const [broadcastLeads, setBroadcastLeads] = useState([])
+  const [myStats, setMyStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
@@ -1152,7 +1188,6 @@ function VendorDashboard({ profile }) {
     if (data) setMyLeads(data)
   }
 
-  // Load broadcast leads (RLS auto-filters to vendor's approved categories)
   async function loadBroadcastLeads() {
     const { data } = await supabase.from('leads')
       .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
@@ -1161,11 +1196,15 @@ function VendorDashboard({ profile }) {
     if (data) setBroadcastLeads(data)
   }
 
-  // Refresh leads periodically so vendors see new broadcasts / status changes
+  // Load my own avg rating
+  async function loadMyStats() {
+    const { data } = await supabase.rpc('get_vendor_stats', { p_vendor_id: profile.id })
+    if (data && data.length > 0) setMyStats(data[0])
+  }
+
   useEffect(() => {
-    Promise.all([loadMyCategories(), loadAllCategories(), loadMyLeads(), loadBroadcastLeads()])
+    Promise.all([loadMyCategories(), loadAllCategories(), loadMyLeads(), loadBroadcastLeads(), loadMyStats()])
       .then(() => setLoading(false))
-    // Refresh every 30 seconds
     const refresh = setInterval(() => { loadMyLeads(); loadBroadcastLeads() }, 30000)
     return () => clearInterval(refresh)
   }, [])
@@ -1193,7 +1232,6 @@ function VendorDashboard({ profile }) {
     if (!error) loadMyCategories()
   }
 
-  // Claim an assigned lead (already mine)
   async function claimLead(leadId) {
     await supabase.from('leads').update({ status: 'claimed' }).eq('id', leadId)
     loadMyLeads()
@@ -1207,19 +1245,11 @@ function VendorDashboard({ profile }) {
     loadMyLeads()
   }
 
-  // Claim a BROADCAST lead — calls server function for atomic claim
   async function claimBroadcastLead(leadId) {
     const { data, error } = await supabase.rpc('claim_broadcast_lead', { p_lead_id: leadId })
     if (error) { alert('Error: ' + error.message); return }
-    if (data === true) {
-      // Successfully claimed
-      loadMyLeads()
-      loadBroadcastLeads()
-    } else {
-      // Someone else got it first
-      alert(t.claimedByOther)
-      loadBroadcastLeads()
-    }
+    if (data === true) { loadMyLeads(); loadBroadcastLeads() }
+    else { alert(t.claimedByOther); loadBroadcastLeads() }
   }
 
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
@@ -1236,6 +1266,26 @@ function VendorDashboard({ profile }) {
       <AppHeader profile={profile} subtitle={t.vendorPanel} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
+
+        {/* My rating card */}
+        {myStats && myStats.review_count > 0 && (
+          <div className="bg-white rounded-2xl shadow p-4 mb-4 flex items-center gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold" style={{ color: myStats.below_threshold ? '#C8202F' : '#1F8A4C' }}>
+                {parseFloat(myStats.avg_rating).toFixed(1)}
+              </div>
+              <StarRating value={Math.round(parseFloat(myStats.avg_rating))} readonly size="sm" />
+            </div>
+            <div className="flex-1 text-xs">
+              <p className="font-semibold" style={{ color: '#1B3A6B' }}>{t.avgRating}</p>
+              <p className="text-gray-500">{t.basedOn} {myStats.review_count} {myStats.review_count === 1 ? t.review : t.reviewsPlural}</p>
+              {myStats.below_threshold && (
+                <p className="mt-1" style={{ color: '#C8202F' }}>⚠ {t.flagged}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
           {[
             { k: 'leads', label: t.myLeads, count: myLeads.length },
@@ -1255,7 +1305,6 @@ function VendorDashboard({ profile }) {
           <>
             {tab === 'leads' && (
               <>
-                {/* AVAILABLE LEADS (broadcast) section */}
                 {broadcastLeads.length > 0 && (
                   <div className="bg-white rounded-2xl shadow p-4 mb-4 border-2" style={{ borderColor: '#C8202F' }}>
                     <h3 className="font-bold mb-1 flex items-center gap-2" style={{ color: '#C8202F' }}>
@@ -1292,7 +1341,6 @@ function VendorDashboard({ profile }) {
                   </div>
                 )}
 
-                {/* MY ASSIGNED / IN-PROGRESS leads */}
                 <div className="bg-white rounded-2xl shadow p-4">
                   <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
                   {myLeads.length === 0 ? (
@@ -1319,7 +1367,6 @@ function VendorDashboard({ profile }) {
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
                             </div>
 
-                            {/* Countdown for newly-assigned leads */}
                             {showTimer && (
                               <div className="mb-2 p-2 rounded-lg flex items-center justify-between" style={{ background: '#FFF3DC' }}>
                                 <span className="text-xs text-gray-600">{t.timeRemaining}:</span>
@@ -1463,26 +1510,42 @@ function VendorDashboard({ profile }) {
 }
 
 // =============================================
-// VENDOR DETAIL — now also shows missed leads
+// VENDOR DETAIL — now also shows reviews + flag
 // =============================================
 function VendorDetail({ vendorId, profile, onBack }) {
   const { t } = useLang()
   const [vendor, setVendor] = useState(null)
   const [vendorCats, setVendorCats] = useState([])
   const [missedLeads, setMissedLeads] = useState([])
+  const [vendorReviews, setVendorReviews] = useState([])
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
   async function loadData() {
     const { data: v } = await supabase.from('profiles').select('*').eq('id', vendorId).single()
     if (v) setVendor(v)
+
     const { data: cats } = await supabase.from('vendor_categories')
       .select('*, categories(*)').eq('vendor_id', vendorId)
       .order('requested_at', { ascending: false })
     if (cats) setVendorCats(cats)
+
     const { data: missed } = await supabase.from('missed_leads')
       .select('*, leads(*, categories(*))').eq('vendor_id', vendorId)
       .order('missed_at', { ascending: false })
     if (missed) setMissedLeads(missed)
+
+    // Load all reviews (any status — admin can see all)
+    const { data: reviews } = await supabase.from('reviews')
+      .select('*, profiles!reviews_customer_id_fkey(full_name, email)')
+      .eq('vendor_id', vendorId)
+      .order('created_at', { ascending: false })
+    if (reviews) setVendorReviews(reviews)
+
+    // Load stats
+    const { data: s } = await supabase.rpc('get_vendor_stats', { p_vendor_id: vendorId })
+    if (s && s.length > 0) setStats(s[0])
+
     setLoading(false)
   }
 
@@ -1494,14 +1557,12 @@ function VendorDetail({ vendorId, profile, onBack }) {
       .eq('id', reqId)
     loadData()
   }
-
   async function denyRequest(reqId) {
     await supabase.from('vendor_categories')
       .update({ status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
       .eq('id', reqId)
     loadData()
   }
-
   async function revokeApproved(reqId) {
     if (!window.confirm(t.confirmRevoke)) return
     await supabase.from('vendor_categories')
@@ -1541,18 +1602,37 @@ function VendorDetail({ vendorId, profile, onBack }) {
       <AppHeader profile={profile} subtitle={`${t.adminPanel} · ${profile?.role}`} onBack={onBack} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
+
+        {/* Flagged warning at top */}
+        {stats?.below_threshold && (
+          <div className="rounded-2xl p-3 mb-4 text-center text-xs font-semibold"
+            style={{ background: '#FDECEA', color: '#9B1C10', border: '1.5px solid #C8202F' }}>
+            {t.flaggedVendorWarning}
+          </div>
+        )}
+
         <div className="bg-white rounded-2xl shadow p-5 mb-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
               style={{ background: '#1F8A4C' }}>
               {(vendor?.full_name || vendor?.email || '?')[0].toUpperCase()}
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="font-bold text-lg" style={{ color: '#1B3A6B' }}>{vendor?.full_name || '(sin nombre)'}</h2>
               <p className="text-xs text-gray-500">{vendor?.email}</p>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white mt-1 inline-block"
                 style={{ backgroundColor: '#1F8A4C' }}>{vendor?.role}</span>
             </div>
+            {/* Star rating */}
+            {stats && stats.review_count > 0 && (
+              <div className="text-right">
+                <div className="text-2xl font-bold" style={{ color: stats.below_threshold ? '#C8202F' : '#1F8A4C' }}>
+                  {parseFloat(stats.avg_rating).toFixed(1)}
+                </div>
+                <StarRating value={Math.round(parseFloat(stats.avg_rating))} readonly size="sm" />
+                <p className="text-[10px] text-gray-500">{stats.review_count} {stats.review_count === 1 ? t.review : t.reviewsPlural}</p>
+              </div>
+            )}
           </div>
           <div className="text-xs text-gray-500">
             <p>{t.joinedOn}: {new Date(vendor?.created_at).toLocaleDateString()}</p>
@@ -1563,9 +1643,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#E8A020' }}>●</span> {t.pendingApproval} ({pending.length})
           </h3>
-          {pending.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noPending}</p>
-          ) : (
+          {pending.length === 0 ? <p className="text-gray-500 text-sm">{t.noPending}</p> : (
             <div className="space-y-2">
               {pending.map((c) => (
                 <CatRow key={c.id} cat={c} actions={
@@ -1587,9 +1665,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#1F8A4C' }}>●</span> {t.approved} ({approved.length})
           </h3>
-          {approved.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noApprovedYet}</p>
-          ) : (
+          {approved.length === 0 ? <p className="text-gray-500 text-sm">{t.noApprovedYet}</p> : (
             <div className="space-y-2">
               {approved.map((c) => (
                 <CatRow key={c.id} cat={c} actions={
@@ -1606,9 +1682,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#C8202F' }}>●</span> {t.denied} ({denied.length})
           </h3>
-          {denied.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noDeniedYet}</p>
-          ) : (
+          {denied.length === 0 ? <p className="text-gray-500 text-sm">{t.noDeniedYet}</p> : (
             <div className="space-y-2">
               {denied.map((c) => (
                 <CatRow key={c.id} cat={c} actions={
@@ -1621,14 +1695,36 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        {/* MISSED LEADS section */}
+        {/* Reviews about this vendor */}
+        <div className="bg-white rounded-2xl shadow p-4 mb-4">
+          <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+            <span style={{ color: '#E8A020' }}>●</span> {t.reviews} ({vendorReviews.length})
+          </h3>
+          {vendorReviews.length === 0 ? <p className="text-gray-500 text-sm">{t.noReviews}</p> : (
+            <div className="space-y-2">
+              {vendorReviews.map((r) => (
+                <div key={r.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                  <div className="flex justify-between items-start mb-1">
+                    <StarRating value={r.rating} readonly size="sm" />
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
+                      style={{ background: r.status === 'approved' ? '#1F8A4C' : r.status === 'rejected' ? '#C8202F' : '#E8A020' }}>
+                      {r.status}
+                    </span>
+                  </div>
+                  {r.comment && <p className="text-xs text-gray-700 mt-1">"{r.comment}"</p>}
+                  <p className="text-[10px] text-gray-400 mt-1">— {r.profiles?.full_name || r.profiles?.email} · {fmtDate(r.created_at)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Missed leads */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#C8202F' }}>●</span> {t.missedLeads} ({missedLeads.length})
           </h3>
-          {missedLeads.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noMissed}</p>
-          ) : (
+          {missedLeads.length === 0 ? <p className="text-gray-500 text-sm">{t.noMissed}</p> : (
             <div className="space-y-2">
               {missedLeads.map((m) => {
                 const catKey = m.leads?.categories?.key
@@ -1647,15 +1743,13 @@ function VendorDetail({ vendorId, profile, onBack }) {
             </div>
           )}
         </div>
-
-        <p className="text-xs text-center text-gray-400 mt-4">{t.comingSoon}: reviews</p>
       </div>
     </div>
   )
 }
 
 // =============================================
-// ADMIN DASHBOARD
+// ADMIN DASHBOARD — adds Reviews moderation tab
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
@@ -1664,6 +1758,7 @@ function AdminDashboard({ profile }) {
   const [invites, setInvites] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [allLeads, setAllLeads] = useState([])
+  const [pendingReviews, setPendingReviews] = useState([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [newRole, setNewRole] = useState('customer')
   const [generating, setGenerating] = useState(false)
@@ -1675,7 +1770,9 @@ function AdminDashboard({ profile }) {
     ? ['owner', 'manager', 'employee', 'vendor', 'customer']
     : ['vendor', 'customer']
 
-  useEffect(() => { loadUsers(); loadInvites(); loadApprovals(); loadAllLeads() }, [])
+  useEffect(() => {
+    loadUsers(); loadInvites(); loadApprovals(); loadAllLeads(); loadPendingReviews()
+  }, [])
 
   async function loadUsers() {
     const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
@@ -1699,6 +1796,17 @@ function AdminDashboard({ profile }) {
       .order('created_at', { ascending: false })
     if (data) setAllLeads(data)
   }
+  // Load pending reviews waiting for moderation
+  async function loadPendingReviews() {
+    const { data } = await supabase.from('reviews')
+      .select(`*,
+        customer:profiles!reviews_customer_id_fkey(full_name, email),
+        vendor:profiles!reviews_vendor_id_fkey(full_name, email),
+        leads(*, categories(*))`)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+    if (data) setPendingReviews(data)
+  }
 
   async function approveRequest(reqId) {
     await supabase.from('vendor_categories')
@@ -1712,6 +1820,21 @@ function AdminDashboard({ profile }) {
       .eq('id', reqId)
     loadApprovals()
   }
+
+  // Approve / reject reviews
+  async function approveReview(reviewId) {
+    await supabase.from('reviews')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
+      .eq('id', reviewId)
+    loadPendingReviews()
+  }
+  async function rejectReview(reviewId) {
+    await supabase.from('reviews')
+      .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
+      .eq('id', reviewId)
+    loadPendingReviews()
+  }
+
   async function handleGenerateInvite() {
     setGenerating(true); setCopied(false)
     const code = generateInviteCode()
@@ -1724,6 +1847,7 @@ function AdminDashboard({ profile }) {
     } else { alert('Error: ' + error.message) }
     setGenerating(false)
   }
+
   async function copyToClipboard() {
     try {
       await navigator.clipboard.writeText(generatedLink)
@@ -1738,7 +1862,6 @@ function AdminDashboard({ profile }) {
     if (role === 'vendor') return '#1F8A4C'
     return '#E8A020'
   }
-
   function inviteStatusBadge(inv) {
     if (inv.used) return { label: t.used, color: '#6B7280' }
     if (new Date(inv.expires_at) < new Date()) return { label: t.expired, color: '#C8202F' }
@@ -1747,7 +1870,7 @@ function AdminDashboard({ profile }) {
 
   if (selectedVendorId) {
     return <VendorDetail vendorId={selectedVendorId} profile={profile}
-      onBack={() => { setSelectedVendorId(null); loadApprovals(); loadUsers(); loadAllLeads() }} />
+      onBack={() => { setSelectedVendorId(null); loadApprovals(); loadUsers(); loadAllLeads(); loadPendingReviews() }} />
   }
 
   const vendors = allUsers.filter((u) => u.role === 'vendor')
@@ -1763,6 +1886,7 @@ function AdminDashboard({ profile }) {
             { k: 'users', label: t.users, count: allUsers.length },
             { k: 'vendors', label: t.vendors, count: vendors.length },
             { k: 'leads', label: t.leads, count: allLeads.length },
+            { k: 'reviews', label: t.reviewsTab, count: pendingReviews.length },
             { k: 'invites', label: t.activeInvites.split(' ')[0], count: invites.filter(i => !i.used && new Date(i.expires_at) > new Date()).length },
             { k: 'approvals', label: t.approvalQueue, count: pendingApprovals.length },
           ].map((tabItem) => (
@@ -1833,9 +1957,7 @@ function AdminDashboard({ profile }) {
         {tab === 'leads' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.leads} ({allLeads.length})</h3>
-            {allLeads.length === 0 ? (
-              <p className="text-gray-500 text-sm">{t.noLeads}</p>
-            ) : (
+            {allLeads.length === 0 ? <p className="text-gray-500 text-sm">{t.noLeads}</p> : (
               <div className="space-y-3">
                 {allLeads.map((lead) => {
                   const catKey = lead.categories?.key
@@ -1868,6 +1990,46 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
+        {/* REVIEWS MODERATION TAB */}
+        {tab === 'reviews' && (
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.moderationQueue} ({pendingReviews.length})</h3>
+            {pendingReviews.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t.noReviewsPending}</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingReviews.map((r) => {
+                  const catKey = r.leads?.categories?.key
+                  return (
+                    <div key={r.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <StarRating value={r.rating} readonly size="sm" />
+                        <span className="text-[10px] text-gray-400">{fmtDate(r.created_at)}</span>
+                      </div>
+                      {r.comment && (
+                        <p className="text-sm text-gray-700 mt-1 mb-2 italic">"{r.comment}"</p>
+                      )}
+                      <div className="text-xs text-gray-500 space-y-0.5 mb-3">
+                        <p>{t.customer}: <span className="font-semibold" style={{ color: '#1B3A6B' }}>{r.customer?.full_name || r.customer?.email}</span></p>
+                        <p>{t.vendor}: <button onClick={() => setSelectedVendorId(r.vendor_id)} className="underline" style={{ color: '#1F8A4C' }}>{r.vendor?.full_name || r.vendor?.email}</button></p>
+                        {catKey && <p>{t.onLead}: {t[catKey]}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => approveReview(r.id)}
+                          className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                          style={{ backgroundColor: '#1F8A4C' }}>✓ {t.publishReview}</button>
+                        <button onClick={() => rejectReview(r.id)}
+                          className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                          style={{ backgroundColor: '#C8202F' }}>✕ {t.rejectReview}</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'invites' && (
           <>
             <button onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setNewRole('customer') }}
@@ -1877,9 +2039,7 @@ function AdminDashboard({ profile }) {
             </button>
             <div className="bg-white rounded-2xl shadow p-4">
               <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.activeInvites}</h3>
-              {invites.length === 0 ? (
-                <p className="text-gray-500 text-sm">{t.noInvites}</p>
-              ) : (
+              {invites.length === 0 ? <p className="text-gray-500 text-sm">{t.noInvites}</p> : (
                 <div className="space-y-2">
                   {invites.slice(0, 20).map((inv) => {
                     const status = inviteStatusBadge(inv)
@@ -1909,9 +2069,7 @@ function AdminDashboard({ profile }) {
         {tab === 'approvals' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.approvalQueue} ({pendingApprovals.length})</h3>
-            {pendingApprovals.length === 0 ? (
-              <p className="text-gray-500 text-sm">{t.noApprovals}</p>
-            ) : (
+            {pendingApprovals.length === 0 ? <p className="text-gray-500 text-sm">{t.noApprovals}</p> : (
               <div className="space-y-2">
                 {pendingApprovals.map((req) => {
                   const catKey = req.categories?.key
