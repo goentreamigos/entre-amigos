@@ -1,13 +1,13 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 2E: Quote system
-//   - Vendors build quotes with line items (qty × unit price = total)
-//   - Quotes can be revised (new quote supersedes the old)
-//   - Customer sees quote with Accept / Decline buttons
-//   - Optional notes and valid-until date
+// Phase 2F:
+//   1. Owner users tab: subtabs by role + search + sort + active filter
+//   2. Customer side: tile search (filter visible tiles by keyword)
+//   3. Vendor leads: subtabs by approved category + search by customer
+//   4. Quote builder: file upload (PDF/docs) attached to quote
 // =============================================
 
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, createContext, useContext, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -21,7 +21,6 @@ const supabase = createClient(
 // ---- Translations ----
 const T = {
   es: {
-    tagline: 'Conectamos. Apoyamos. Crecemos Juntos.',
     welcomeBack: 'Bienvenido', welcomeSub: 'Inicia sesión para continuar',
     email: 'Correo', password: 'Contraseña',
     signIn: 'Iniciar Sesión', signOut: 'Salir',
@@ -30,7 +29,8 @@ const T = {
     goodDay: 'Hola,', friend: 'Amigo',
     searchServices: 'Buscar servicios...',
     services: 'Servicios', history: 'Historial', messages: 'Mensajes', profile: 'Perfil',
-    active: 'Activos', pending: 'Pendiente', rating: 'Calificación',
+    active: 'Activos', activeOnly: 'Solo activos', allUsers: 'Todos',
+    pending: 'Pendiente', rating: 'Calificación',
     insurance: 'Seguros', insuranceSub: 'Salud · Auto · Vida',
     doctor: 'Médico', doctorSub: 'Atención cercana',
     buyHome: 'Comprar Casa', buyHomeSub: 'Préstamos · Agentes',
@@ -53,6 +53,7 @@ const T = {
     checkEmail: 'Revisa tu correo para confirmar tu cuenta.',
     roleOwner: 'Dueño', roleManager: 'Gerente', roleEmployee: 'Empleado',
     roleVendor: 'Proveedor', roleCustomer: 'Cliente',
+    all: 'Todos',
     myCategories: 'Mis Categorías', requestCategory: 'Solicitar Categorías',
     requestNewCategory: 'Solicitar Categorías',
     selectCategories: 'Selecciona las categorías que ofreces',
@@ -113,10 +114,8 @@ const T = {
     flagged: 'Calificación baja',
     avgRating: 'Promedio', basedOn: 'basado en',
     review: 'reseña', reviewsPlural: 'reseñas',
-    star: 'estrella', stars: 'estrellas',
     flaggedVendorWarning: '⚠ Este proveedor tiene calificación baja. Revisa su perfil.',
     onLead: 'Sobre el servicio',
-    // ---- Quotes (Phase 2E) ----
     quote: 'Cotización', quotes: 'Cotizaciones',
     createQuote: 'Crear Cotización', editQuote: 'Editar Cotización',
     viewQuote: 'Ver Cotización', revising: 'Revisando',
@@ -131,26 +130,37 @@ const T = {
     quoteNotes: 'Notas (términos, qué incluye, etc.)',
     notesPlaceholder: 'Por ejemplo: Esta cotización incluye instalación y garantía de 1 año...',
     validUntil: 'Válida hasta',
-    acceptQuote: 'Aceptar Cotización',
-    declineQuote: 'Rechazar',
-    quoteAccepted: '¡Cotización aceptada!',
-    quoteDeclined: 'Cotización rechazada',
-    quoteFromVendor: 'Cotización de',
-    quoteStatus_sent: 'Pendiente',
-    quoteStatus_accepted: 'Aceptada',
-    quoteStatus_declined: 'Rechazada',
-    quoteStatus_expired: 'Expirada',
-    quoteStatus_superseded: 'Reemplazada',
-    quoteStatus_draft: 'Borrador',
+    acceptQuote: 'Aceptar Cotización', declineQuote: 'Rechazar',
+    quoteAccepted: '¡Cotización aceptada!', quoteDeclined: 'Cotización rechazada',
+    quoteStatus_sent: 'Pendiente', quoteStatus_accepted: 'Aceptada',
+    quoteStatus_declined: 'Rechazada', quoteStatus_expired: 'Expirada',
+    quoteStatus_superseded: 'Reemplazada', quoteStatus_draft: 'Borrador',
     confirmDecline: '¿Estás seguro de rechazar esta cotización?',
-    noQuotes: 'Sin cotizaciones todavía',
     quoteRevisedNote: 'Enviar una nueva cotización reemplaza la anterior',
-    needsItems: 'Agrega al menos un concepto',
+    needsItems: 'Agrega al menos un concepto o un archivo',
     needsDescAndPrice: 'Cada concepto necesita descripción y precio',
-    viewLineItems: 'Ver conceptos',
+    // ---- Search + filtering (Phase 2F) ----
+    searchPlaceholder: 'Buscar por nombre o ID...',
+    searchCustomerPlaceholder: 'Buscar cliente...',
+    searchTilesPlaceholder: 'Buscar servicio... (ej: auto, casa, seguro)',
+    sortAlphabetical: 'A-Z',
+    sortNewest: 'Más nuevos',
+    noResults: 'No se encontraron resultados',
+    noResultsTry: 'Intenta con otra búsqueda',
+    customerId: 'ID Cliente',
+    // ---- File uploads (Phase 2F) ----
+    attachFile: 'Adjuntar Archivo',
+    attachedFiles: 'Archivos Adjuntos',
+    uploadFile: '📎 Subir Archivo',
+    uploading: 'Subiendo...',
+    downloadFile: '📥 Descargar',
+    removeFile: 'Eliminar archivo',
+    fileTooLarge: 'El archivo es muy grande (máx 10MB)',
+    uploadError: 'Error al subir el archivo',
+    fileUploadHelp: 'Adjunta un PDF o documento (máx 10MB). Útil para cotizaciones formales o contratos.',
+    orUploadFile: 'O sube un archivo en su lugar',
   },
   en: {
-    tagline: 'We Connect. We Support. We Grow Together.',
     welcomeBack: 'Welcome back', welcomeSub: 'Sign in to continue',
     email: 'Email', password: 'Password',
     signIn: 'Sign In', signOut: 'Sign Out',
@@ -159,7 +169,8 @@ const T = {
     goodDay: 'Hello,', friend: 'Friend',
     searchServices: 'Search services...',
     services: 'Services', history: 'History', messages: 'Messages', profile: 'Profile',
-    active: 'Active', pending: 'Pending', rating: 'Rating',
+    active: 'Active', activeOnly: 'Active only', allUsers: 'All',
+    pending: 'Pending', rating: 'Rating',
     insurance: 'Insurance', insuranceSub: 'Health · Auto · Life',
     doctor: 'Doctor', doctorSub: 'Find care near you',
     buyHome: 'Buy a Home', buyHomeSub: 'Loans · Agents',
@@ -182,6 +193,7 @@ const T = {
     checkEmail: 'Check your email to confirm your account.',
     roleOwner: 'Owner', roleManager: 'Manager', roleEmployee: 'Employee',
     roleVendor: 'Vendor', roleCustomer: 'Customer',
+    all: 'All',
     myCategories: 'My Categories', requestCategory: 'Request Categories',
     requestNewCategory: 'Request Categories',
     selectCategories: 'Select the categories you offer',
@@ -241,10 +253,8 @@ const T = {
     flagged: 'Low rating',
     avgRating: 'Average', basedOn: 'based on',
     review: 'review', reviewsPlural: 'reviews',
-    star: 'star', stars: 'stars',
     flaggedVendorWarning: '⚠ This vendor has a low rating. Review their profile.',
     onLead: 'On lead',
-    // ---- Quotes (Phase 2E) ----
     quote: 'Quote', quotes: 'Quotes',
     createQuote: 'Create Quote', editQuote: 'Edit Quote',
     viewQuote: 'View Quote', revising: 'Revising',
@@ -259,26 +269,37 @@ const T = {
     quoteNotes: 'Notes (terms, what\'s included, etc.)',
     notesPlaceholder: 'For example: This quote includes installation and 1-year warranty...',
     validUntil: 'Valid until',
-    acceptQuote: 'Accept Quote',
-    declineQuote: 'Decline',
-    quoteAccepted: 'Quote accepted!',
-    quoteDeclined: 'Quote declined',
-    quoteFromVendor: 'Quote from',
-    quoteStatus_sent: 'Pending',
-    quoteStatus_accepted: 'Accepted',
-    quoteStatus_declined: 'Declined',
-    quoteStatus_expired: 'Expired',
-    quoteStatus_superseded: 'Superseded',
-    quoteStatus_draft: 'Draft',
+    acceptQuote: 'Accept Quote', declineQuote: 'Decline',
+    quoteAccepted: 'Quote accepted!', quoteDeclined: 'Quote declined',
+    quoteStatus_sent: 'Pending', quoteStatus_accepted: 'Accepted',
+    quoteStatus_declined: 'Declined', quoteStatus_expired: 'Expired',
+    quoteStatus_superseded: 'Superseded', quoteStatus_draft: 'Draft',
     confirmDecline: 'Are you sure you want to decline this quote?',
-    noQuotes: 'No quotes yet',
     quoteRevisedNote: 'Sending a new quote replaces the previous one',
-    needsItems: 'Add at least one item',
+    needsItems: 'Add at least one line item or attach a file',
     needsDescAndPrice: 'Each item needs description and price',
-    viewLineItems: 'View items',
+    // ---- Search + filtering (Phase 2F) ----
+    searchPlaceholder: 'Search by name or ID...',
+    searchCustomerPlaceholder: 'Search customer...',
+    searchTilesPlaceholder: 'Search service... (e.g. car, home, insurance)',
+    sortAlphabetical: 'A-Z',
+    sortNewest: 'Newest',
+    noResults: 'No results found',
+    noResultsTry: 'Try a different search',
+    customerId: 'Customer ID',
+    // ---- File uploads (Phase 2F) ----
+    attachFile: 'Attach File',
+    attachedFiles: 'Attached Files',
+    uploadFile: '📎 Upload File',
+    uploading: 'Uploading...',
+    downloadFile: '📥 Download',
+    removeFile: 'Remove file',
+    fileTooLarge: 'File is too large (max 10MB)',
+    uploadError: 'Failed to upload file',
+    fileUploadHelp: 'Attach a PDF or document (max 10MB). Useful for formal quotes or contracts.',
+    orUploadFile: 'Or upload a file instead',
   },
   pt: {
-    tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
     welcomeBack: 'Bem-vindo', welcomeSub: 'Entre para continuar',
     email: 'E-mail', password: 'Senha',
     signIn: 'Entrar', signOut: 'Sair',
@@ -287,7 +308,8 @@ const T = {
     goodDay: 'Olá,', friend: 'Amigo',
     searchServices: 'Buscar serviços...',
     services: 'Serviços', history: 'Histórico', messages: 'Mensagens', profile: 'Perfil',
-    active: 'Ativos', pending: 'Pendente', rating: 'Avaliação',
+    active: 'Ativos', activeOnly: 'Apenas ativos', allUsers: 'Todos',
+    pending: 'Pendente', rating: 'Avaliação',
     insurance: 'Seguro', insuranceSub: 'Saúde · Auto · Vida',
     doctor: 'Médico', doctorSub: 'Cuidado perto de você',
     buyHome: 'Comprar Casa', buyHomeSub: 'Empréstimos · Agentes',
@@ -310,6 +332,7 @@ const T = {
     checkEmail: 'Verifique seu e-mail para confirmar sua conta.',
     roleOwner: 'Dono', roleManager: 'Gerente', roleEmployee: 'Funcionário',
     roleVendor: 'Fornecedor', roleCustomer: 'Cliente',
+    all: 'Todos',
     myCategories: 'Minhas Categorias', requestCategory: 'Solicitar Categorias',
     requestNewCategory: 'Solicitar Categorias',
     selectCategories: 'Selecione as categorias que você oferece',
@@ -370,10 +393,8 @@ const T = {
     flagged: 'Avaliação baixa',
     avgRating: 'Média', basedOn: 'baseado em',
     review: 'avaliação', reviewsPlural: 'avaliações',
-    star: 'estrela', stars: 'estrelas',
     flaggedVendorWarning: '⚠ Este fornecedor tem avaliação baixa. Revise o perfil.',
     onLead: 'Sobre o serviço',
-    // ---- Quotes (Phase 2E) ----
     quote: 'Cotação', quotes: 'Cotações',
     createQuote: 'Criar Cotação', editQuote: 'Editar Cotação',
     viewQuote: 'Ver Cotação', revising: 'Revisando',
@@ -388,34 +409,50 @@ const T = {
     quoteNotes: 'Notas (termos, o que inclui, etc.)',
     notesPlaceholder: 'Por exemplo: Esta cotação inclui instalação e garantia de 1 ano...',
     validUntil: 'Válida até',
-    acceptQuote: 'Aceitar Cotação',
-    declineQuote: 'Recusar',
-    quoteAccepted: 'Cotação aceita!',
-    quoteDeclined: 'Cotação recusada',
-    quoteFromVendor: 'Cotação de',
-    quoteStatus_sent: 'Pendente',
-    quoteStatus_accepted: 'Aceita',
-    quoteStatus_declined: 'Recusada',
-    quoteStatus_expired: 'Expirada',
-    quoteStatus_superseded: 'Substituída',
-    quoteStatus_draft: 'Rascunho',
+    acceptQuote: 'Aceitar Cotação', declineQuote: 'Recusar',
+    quoteAccepted: 'Cotação aceita!', quoteDeclined: 'Cotação recusada',
+    quoteStatus_sent: 'Pendente', quoteStatus_accepted: 'Aceita',
+    quoteStatus_declined: 'Recusada', quoteStatus_expired: 'Expirada',
+    quoteStatus_superseded: 'Substituída', quoteStatus_draft: 'Rascunho',
     confirmDecline: 'Tem certeza que deseja recusar esta cotação?',
-    noQuotes: 'Sem cotações ainda',
     quoteRevisedNote: 'Enviar uma nova cotação substitui a anterior',
-    needsItems: 'Adicione pelo menos um item',
+    needsItems: 'Adicione pelo menos um item ou anexe um arquivo',
     needsDescAndPrice: 'Cada item precisa de descrição e preço',
-    viewLineItems: 'Ver itens',
+    searchPlaceholder: 'Buscar por nome ou ID...',
+    searchCustomerPlaceholder: 'Buscar cliente...',
+    searchTilesPlaceholder: 'Buscar serviço... (ex: carro, casa, seguro)',
+    sortAlphabetical: 'A-Z',
+    sortNewest: 'Mais novos',
+    noResults: 'Nenhum resultado encontrado',
+    noResultsTry: 'Tente uma busca diferente',
+    customerId: 'ID Cliente',
+    attachFile: 'Anexar Arquivo',
+    attachedFiles: 'Arquivos Anexados',
+    uploadFile: '📎 Enviar Arquivo',
+    uploading: 'Enviando...',
+    downloadFile: '📥 Baixar',
+    removeFile: 'Remover arquivo',
+    fileTooLarge: 'O arquivo é muito grande (máx 10MB)',
+    uploadError: 'Erro ao enviar o arquivo',
+    fileUploadHelp: 'Anexe um PDF ou documento (máx 10MB). Útil para cotações formais ou contratos.',
+    orUploadFile: 'Ou envie um arquivo no lugar',
   },
 }
 
 const LangContext = createContext({ lang: 'es', t: T.es, setLang: () => {} })
 const useLang = () => useContext(LangContext)
 
+// Tiles + searchable keywords (Phase 2F: search filters)
+// Keywords map to alternative search terms per language
 const TILES = [
-  { key: 'insurance', icon: '🛡️' }, { key: 'doctor', icon: '🩺' },
-  { key: 'buyHome', icon: '🏠' }, { key: 'renting', icon: '🏢' },
-  { key: 'mechanic', icon: '🔧' }, { key: 'legal', icon: '⚖️' },
-  { key: 'banking', icon: '🏦' }, { key: 'education', icon: '🎓' },
+  { key: 'insurance', icon: '🛡️', keywords: { es: ['seguro', 'auto', 'carro', 'vida', 'salud', 'casa'], en: ['insurance', 'car', 'auto', 'health', 'life', 'home'], pt: ['seguro', 'carro', 'vida', 'saude', 'casa'] } },
+  { key: 'doctor', icon: '🩺', keywords: { es: ['medico', 'doctor', 'salud', 'clinica', 'hospital'], en: ['doctor', 'health', 'medical', 'clinic', 'hospital', 'physician'], pt: ['medico', 'doutor', 'saude', 'clinica', 'hospital'] } },
+  { key: 'buyHome', icon: '🏠', keywords: { es: ['casa', 'comprar', 'hipoteca', 'prestamo', 'realtor', 'agente'], en: ['home', 'buy', 'house', 'mortgage', 'loan', 'realtor', 'agent', 'real estate'], pt: ['casa', 'comprar', 'hipoteca', 'emprestimo', 'imovel'] } },
+  { key: 'renting', icon: '🏢', keywords: { es: ['rentar', 'alquilar', 'apartamento', 'casa', 'depa'], en: ['rent', 'apartment', 'house', 'lease', 'renting'], pt: ['alugar', 'apartamento', 'casa', 'aluguel'] } },
+  { key: 'mechanic', icon: '🔧', keywords: { es: ['mecanico', 'auto', 'carro', 'reparacion', 'taller'], en: ['mechanic', 'car', 'auto', 'repair', 'shop'], pt: ['mecanico', 'carro', 'reparo', 'oficina'] } },
+  { key: 'legal', icon: '⚖️', keywords: { es: ['abogado', 'legal', 'inmigracion', 'derechos', 'corte'], en: ['lawyer', 'legal', 'attorney', 'immigration', 'rights', 'court'], pt: ['advogado', 'legal', 'imigracao', 'direitos'] } },
+  { key: 'banking', icon: '🏦', keywords: { es: ['banco', 'cuenta', 'envio', 'dinero', 'remesa'], en: ['bank', 'account', 'money', 'transfer', 'remittance'], pt: ['banco', 'conta', 'dinheiro', 'transferencia'] } },
+  { key: 'education', icon: '🎓', keywords: { es: ['educacion', 'escuela', 'ingles', 'esl', 'ged', 'clase'], en: ['education', 'school', 'english', 'esl', 'ged', 'class'], pt: ['educacao', 'escola', 'ingles', 'aula'] } },
 ]
 
 function generateInviteCode() {
@@ -431,6 +468,28 @@ function fmtDate(d) {
 function fmtMoney(n) {
   const num = Number(n) || 0
   return '$' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Show a short customer ID (first 8 chars of UUID, uppercased)
+function shortId(uuid) {
+  if (!uuid) return ''
+  return uuid.replace(/-/g, '').substring(0, 8).toUpperCase()
+}
+
+// File size formatter (KB / MB)
+function fmtFileSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// "Active" = has activity in last 30 days (created_at OR last lead activity)
+function isActiveUser(u) {
+  if (!u) return false
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  const created = new Date(u.created_at).getTime()
+  return created > thirtyDaysAgo
 }
 
 function fmtCountdown(deadlineIso, t) {
@@ -481,8 +540,7 @@ function StarRating({ value, onChange, size = 'md', readonly = false }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((n) => (
-        <button key={n}
-          disabled={readonly}
+        <button key={n} disabled={readonly}
           onClick={() => !readonly && onChange && onChange(n)}
           className={readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110 transition'}
           style={{ fontSize: fs, color: n <= value ? '#E8A020' : '#d0d0d0', background: 'none', border: 'none', padding: 0 }}>
@@ -526,6 +584,25 @@ function LangSwitcher({ inverted = false }) {
             ))}
           </div>
         </>
+      )}
+    </div>
+  )
+}
+
+// Reusable search input component
+function SearchInput({ value, onChange, placeholder }) {
+  return (
+    <div className="relative mb-3">
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-9 pr-3 py-2 rounded-xl border bg-gray-50 text-sm outline-none"
+        style={{ borderColor: '#e0e0e0' }} />
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+      {value && (
+        <button onClick={() => onChange('')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-lg w-6 h-6 flex items-center justify-center">
+          ✕
+        </button>
       )}
     </div>
   )
@@ -809,21 +886,20 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
-// QUOTE BUILDER MODAL — vendor creates / revises a quote
+// QUOTE BUILDER MODAL — now with file upload (Phase 2F)
 // =============================================
 function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess }) {
   const { t } = useLang()
-  // Items state: array of { description, quantity, unit_price }
   const [items, setItems] = useState([{ description: '', quantity: 1, unit_price: 0 }])
   const [notes, setNotes] = useState('')
   const [validUntil, setValidUntil] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [pendingFiles, setPendingFiles] = useState([]) // new uploads (File objects)
+  const [existingFiles, setExistingFiles] = useState([]) // already-uploaded files from a previous quote
 
-  // If we're "revising" an existing quote, prefill its values
   useEffect(() => {
     if (existingQuote) {
-      // Load the quote's line items
       supabase.from('quote_items').select('*').eq('quote_id', existingQuote.id).order('sort_order')
         .then(({ data }) => {
           if (data && data.length > 0) {
@@ -832,15 +908,13 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
             })))
           }
         })
+      supabase.from('quote_files').select('*').eq('quote_id', existingQuote.id)
+        .then(({ data }) => { if (data) setExistingFiles(data) })
       setNotes(existingQuote.notes || '')
-      if (existingQuote.valid_until) {
-        // Convert ISO to yyyy-mm-dd for the date input
-        setValidUntil(existingQuote.valid_until.split('T')[0])
-      }
+      if (existingQuote.valid_until) setValidUntil(existingQuote.valid_until.split('T')[0])
     }
   }, [existingQuote])
 
-  // Calculate total live
   const total = items.reduce((sum, item) => {
     return sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0)
   }, 0)
@@ -850,29 +924,51 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
     next[index] = { ...next[index], [field]: value }
     setItems(next)
   }
-
   function addItem() {
     setItems([...items, { description: '', quantity: 1, unit_price: 0 }])
   }
-
   function removeItem(index) {
-    if (items.length === 1) return // Always keep at least one item
+    if (items.length === 1) return
     setItems(items.filter((_, i) => i !== index))
+  }
+
+  function handleFileSelect(e) {
+    const files = Array.from(e.target.files || [])
+    const MAX = 10 * 1024 * 1024 // 10MB
+    for (const f of files) {
+      if (f.size > MAX) { setError(t.fileTooLarge); return }
+    }
+    setError('')
+    setPendingFiles([...pendingFiles, ...files])
+    e.target.value = '' // allow re-selecting same file
+  }
+
+  function removePendingFile(idx) {
+    setPendingFiles(pendingFiles.filter((_, i) => i !== idx))
   }
 
   async function submitQuote() {
     setError('')
-    // Validation
-    if (items.length === 0) { setError(t.needsItems); return }
-    for (const item of items) {
-      if (!item.description || Number(item.unit_price) <= 0) {
-        setError(t.needsDescAndPrice); return
+    // Allow file-only quotes: must have either line items with content OR at least one file
+    const hasItems = items.some((i) => i.description && Number(i.unit_price) > 0)
+    const hasFiles = pendingFiles.length > 0 || existingFiles.length > 0
+    if (!hasItems && !hasFiles) { setError(t.needsItems); return }
+
+    // If line items exist, validate them all
+    if (hasItems) {
+      for (const item of items) {
+        // allow blank rows when files are attached, but if a row has any value, validate
+        if (item.description || Number(item.unit_price) > 0) {
+          if (!item.description || Number(item.unit_price) <= 0) {
+            setError(t.needsDescAndPrice); return
+          }
+        }
       }
     }
 
     setBusy(true)
     try {
-      // Step 1: create the new quote row (the supersede trigger handles old ones)
+      // Step 1: create new quote
       const { data: newQuote, error: qErr } = await supabase.from('quotes').insert({
         lead_id: lead.id,
         vendor_id: profile.id,
@@ -884,21 +980,55 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
       }).select().single()
       if (qErr) throw qErr
 
-      // Step 2: insert the line items
-      const itemRows = items.map((item, idx) => ({
-        quote_id: newQuote.id,
-        description: item.description,
-        quantity: Number(item.quantity) || 1,
-        unit_price: Number(item.unit_price) || 0,
-        line_total: (Number(item.quantity) || 1) * (Number(item.unit_price) || 0),
-        sort_order: idx,
-      }))
-      const { error: iErr } = await supabase.from('quote_items').insert(itemRows)
-      if (iErr) throw iErr
+      // Step 2: insert line items (filter blanks)
+      const validItems = items.filter((i) => i.description && Number(i.unit_price) > 0)
+      if (validItems.length > 0) {
+        const itemRows = validItems.map((item, idx) => ({
+          quote_id: newQuote.id,
+          description: item.description,
+          quantity: Number(item.quantity) || 1,
+          unit_price: Number(item.unit_price) || 0,
+          line_total: (Number(item.quantity) || 1) * (Number(item.unit_price) || 0),
+          sort_order: idx,
+        }))
+        const { error: iErr } = await supabase.from('quote_items').insert(itemRows)
+        if (iErr) throw iErr
+      }
 
-      // Step 3: update lead status to 'quoted'
+      // Step 3: copy any existing files from previous quote (re-attach to new quote)
+      if (existingFiles.length > 0) {
+        const reAttach = existingFiles.map((f) => ({
+          quote_id: newQuote.id,
+          uploaded_by: profile.id,
+          file_name: f.file_name,
+          file_path: f.file_path, // same storage path, just new DB row
+          file_size: f.file_size,
+          mime_type: f.mime_type,
+        }))
+        const { error: rErr } = await supabase.from('quote_files').insert(reAttach)
+        if (rErr) throw rErr
+      }
+
+      // Step 4: upload new files to storage + insert quote_files rows
+      for (const file of pendingFiles) {
+        const path = `${newQuote.id}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: upErr } = await supabase.storage
+          .from('quote-files')
+          .upload(path, file, { contentType: file.type })
+        if (upErr) throw upErr
+        const { error: rowErr } = await supabase.from('quote_files').insert({
+          quote_id: newQuote.id,
+          uploaded_by: profile.id,
+          file_name: file.name,
+          file_path: path,
+          file_size: file.size,
+          mime_type: file.type,
+        })
+        if (rowErr) throw rowErr
+      }
+
+      // Step 5: update lead status to 'quoted'
       await supabase.from('leads').update({ status: 'quoted' }).eq('id', lead.id)
-
       onSuccess()
     } catch (e) {
       setError(e.message || t.errGeneric)
@@ -918,46 +1048,32 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
         )}
 
         <div className="overflow-y-auto flex-1 -mx-1 px-1">
-          {/* Line Items */}
           <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#1B3A6B' }}>
             {t.lineItems}
           </label>
           <div className="space-y-3 mb-4">
             {items.map((item, idx) => (
               <div key={idx} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
-                {/* Description full width */}
-                <input
-                  type="text"
-                  value={item.description}
+                <input type="text" value={item.description}
                   onChange={(e) => updateItem(idx, 'description', e.target.value)}
                   placeholder={t.itemDescPlaceholder}
                   className="w-full px-3 py-2 rounded-lg border bg-gray-50 text-sm outline-none mb-2"
-                  style={{ borderColor: '#e0e0e0' }}
-                />
-                {/* Qty + price side by side */}
+                  style={{ borderColor: '#e0e0e0' }} />
                 <div className="flex gap-2 items-end">
                   <div className="w-16">
                     <label className="block text-[10px] text-gray-500 mb-0.5">{t.itemQty}</label>
-                    <input
-                      type="number"
-                      min="1" step="1"
-                      value={item.quantity}
+                    <input type="number" min="1" step="1" value={item.quantity}
                       onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
                       className="w-full px-2 py-1.5 rounded-lg border bg-gray-50 text-sm outline-none text-center"
-                      style={{ borderColor: '#e0e0e0' }}
-                    />
+                      style={{ borderColor: '#e0e0e0' }} />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] text-gray-500 mb-0.5">{t.itemPrice}</label>
-                    <input
-                      type="number"
-                      min="0" step="0.01"
-                      value={item.unit_price}
+                    <input type="number" min="0" step="0.01" value={item.unit_price}
                       onChange={(e) => updateItem(idx, 'unit_price', e.target.value)}
                       placeholder="0.00"
                       className="w-full px-2 py-1.5 rounded-lg border bg-gray-50 text-sm outline-none"
-                      style={{ borderColor: '#e0e0e0' }}
-                    />
+                      style={{ borderColor: '#e0e0e0' }} />
                   </div>
                   <div className="text-right" style={{ minWidth: 70 }}>
                     <label className="block text-[10px] text-gray-500 mb-0.5">=</label>
@@ -980,13 +1096,54 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
             {t.addItem}
           </button>
 
-          {/* TOTAL */}
           <div className="border-t-2 pt-3 mb-4 flex justify-between items-center" style={{ borderColor: '#1B3A6B' }}>
             <span className="font-bold text-sm" style={{ color: '#1B3A6B' }}>{t.quoteTotal}</span>
             <span className="text-2xl font-bold" style={{ color: '#1F8A4C' }}>{fmtMoney(total)}</span>
           </div>
 
-          {/* Notes */}
+          {/* FILE UPLOAD SECTION */}
+          <div className="mb-4 p-3 rounded-xl border-2 border-dashed" style={{ borderColor: '#1B3A6B', background: '#FBF6EC' }}>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#1B3A6B' }}>
+              {t.attachedFiles}
+            </label>
+            <p className="text-[10px] text-gray-500 mb-2">{t.fileUploadHelp}</p>
+
+            {/* Already-uploaded files (from previous quote) */}
+            {existingFiles.map((f, i) => (
+              <div key={'e' + i} className="flex items-center gap-2 bg-white rounded-lg p-2 mb-1.5 border" style={{ borderColor: '#e0e0e0' }}>
+                <span style={{ fontSize: 18 }}>📄</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: '#1B3A6B' }}>{f.file_name}</p>
+                  <p className="text-[10px] text-gray-500">{fmtFileSize(f.file_size)}</p>
+                </div>
+                <button onClick={() => setExistingFiles(existingFiles.filter((_, idx) => idx !== i))}
+                  className="text-lg" style={{ color: '#C8202F' }}>✕</button>
+              </div>
+            ))}
+
+            {/* Newly-selected files */}
+            {pendingFiles.map((f, i) => (
+              <div key={'p' + i} className="flex items-center gap-2 bg-white rounded-lg p-2 mb-1.5 border" style={{ borderColor: '#1F8A4C' }}>
+                <span style={{ fontSize: 18 }}>📄</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: '#1B3A6B' }}>{f.name}</p>
+                  <p className="text-[10px]" style={{ color: '#1F8A4C' }}>{fmtFileSize(f.size)} · nuevo</p>
+                </div>
+                <button onClick={() => removePendingFile(i)} className="text-lg" style={{ color: '#C8202F' }}>✕</button>
+              </div>
+            ))}
+
+            <label className="block">
+              <input type="file" onChange={handleFileSelect}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                className="hidden" />
+              <div className="cursor-pointer text-center py-2 rounded-lg text-sm font-semibold"
+                style={{ background: 'white', color: '#1B3A6B', border: '1.5px solid #1B3A6B' }}>
+                {t.uploadFile}
+              </div>
+            </label>
+          </div>
+
           <div className="mb-3">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.quoteNotes}</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
@@ -994,7 +1151,6 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
               style={{ borderColor: '#e0e0e0' }} placeholder={t.notesPlaceholder} />
           </div>
 
-          {/* Valid until */}
           <div className="mb-3">
             <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.validUntil}</label>
             <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)}
@@ -1007,10 +1163,10 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
           <div className="text-xs text-center mb-2 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>
         )}
 
-        <button onClick={submitQuote} disabled={busy || total <= 0}
+        <button onClick={submitQuote} disabled={busy}
           className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40 mb-2"
           style={{ backgroundColor: '#C8202F' }}>
-          {busy ? t.loading : t.sendQuoteBtn + ' — ' + fmtMoney(total)}
+          {busy ? t.uploading : `${t.sendQuoteBtn}${total > 0 ? ' — ' + fmtMoney(total) : ''}`}
         </button>
         <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
       </div>
@@ -1019,24 +1175,37 @@ function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess })
 }
 
 // =============================================
-// QUOTE VIEWER MODAL — customer or vendor views a quote
-// Customer sees Accept/Decline buttons; vendor sees read-only
+// QUOTE VIEWER MODAL — now shows file attachments with download
 // =============================================
 function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
   const { t } = useLang()
   const [items, setItems] = useState([])
+  const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('quote_items').select('*')
-        .eq('quote_id', quote.id).order('sort_order')
-      if (data) setItems(data)
+      const [itemsRes, filesRes] = await Promise.all([
+        supabase.from('quote_items').select('*').eq('quote_id', quote.id).order('sort_order'),
+        supabase.from('quote_files').select('*').eq('quote_id', quote.id),
+      ])
+      if (itemsRes.data) setItems(itemsRes.data)
+      if (filesRes.data) setFiles(filesRes.data)
       setLoading(false)
     }
     load()
   }, [quote.id])
+
+  async function downloadFile(file) {
+    // Create a signed URL valid for 1 hour
+    const { data, error } = await supabase.storage.from('quote-files')
+      .createSignedUrl(file.file_path, 3600)
+    if (error) { alert('Error: ' + error.message); return }
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, '_blank')
+    }
+  }
 
   async function acceptQuote() {
     setBusy(true)
@@ -1077,26 +1246,48 @@ function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
             <p className="text-center text-gray-400 py-6">{t.loading}</p>
           ) : (
             <>
-              {/* Line items */}
-              <div className="space-y-2 mb-4">
-                {items.map((item) => (
-                  <div key={item.id} className="border rounded-xl p-3 flex items-center gap-3" style={{ borderColor: '#e0e0e0' }}>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: '#1B3A6B' }}>{item.description}</p>
-                      <p className="text-xs text-gray-500">{item.quantity} × {fmtMoney(item.unit_price)}</p>
+              {items.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {items.map((item) => (
+                    <div key={item.id} className="border rounded-xl p-3 flex items-center gap-3" style={{ borderColor: '#e0e0e0' }}>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold" style={{ color: '#1B3A6B' }}>{item.description}</p>
+                        <p className="text-xs text-gray-500">{item.quantity} × {fmtMoney(item.unit_price)}</p>
+                      </div>
+                      <p className="font-bold text-sm" style={{ color: '#1F8A4C' }}>{fmtMoney(item.line_total)}</p>
                     </div>
-                    <p className="font-bold text-sm" style={{ color: '#1F8A4C' }}>{fmtMoney(item.line_total)}</p>
+                  ))}
+                </div>
+              )}
+
+              {quote.total > 0 && (
+                <div className="border-t-2 pt-3 mb-4 flex justify-between items-center" style={{ borderColor: '#1B3A6B' }}>
+                  <span className="font-bold" style={{ color: '#1B3A6B' }}>{t.quoteTotal}</span>
+                  <span className="text-2xl font-bold" style={{ color: '#1F8A4C' }}>{fmtMoney(quote.total)}</span>
+                </div>
+              )}
+
+              {/* Attached files */}
+              {files.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#1B3A6B' }}>{t.attachedFiles}</label>
+                  <div className="space-y-2">
+                    {files.map((f) => (
+                      <button key={f.id} onClick={() => downloadFile(f)}
+                        className="w-full flex items-center gap-2 border rounded-xl p-3 hover:bg-gray-50 text-left"
+                        style={{ borderColor: '#e0e0e0' }}>
+                        <span style={{ fontSize: 22 }}>📄</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: '#1B3A6B' }}>{f.file_name}</p>
+                          <p className="text-xs text-gray-500">{fmtFileSize(f.file_size)}</p>
+                        </div>
+                        <span className="text-sm font-semibold" style={{ color: '#1F8A4C' }}>{t.downloadFile}</span>
+                      </button>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
-              {/* Total */}
-              <div className="border-t-2 pt-3 mb-4 flex justify-between items-center" style={{ borderColor: '#1B3A6B' }}>
-                <span className="font-bold" style={{ color: '#1B3A6B' }}>{t.quoteTotal}</span>
-                <span className="text-2xl font-bold" style={{ color: '#1F8A4C' }}>{fmtMoney(quote.total)}</span>
-              </div>
-
-              {/* Notes */}
               {quote.notes && (
                 <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: '#FBF6EC', color: '#1B3A6B' }}>
                   <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-gray-500">{t.quoteNotes.split(' (')[0]}</p>
@@ -1104,7 +1295,6 @@ function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
                 </div>
               )}
 
-              {/* Valid until */}
               {quote.valid_until && (
                 <p className="text-xs text-gray-500 text-center mb-3">
                   {t.validUntil}: {new Date(quote.valid_until).toLocaleDateString()}
@@ -1114,7 +1304,6 @@ function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
           )}
         </div>
 
-        {/* Action buttons */}
         {canRespond && (
           <div className="flex gap-2 mt-2 mb-2">
             <button onClick={acceptQuote} disabled={busy}
@@ -1138,7 +1327,7 @@ function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
 }
 
 // =============================================
-// REVIEW MODAL (from Phase 2D)
+// REVIEW MODAL
 // =============================================
 function ReviewModal({ lead, profile, onClose, onSuccess }) {
   const { t } = useLang()
@@ -1194,7 +1383,7 @@ function ReviewModal({ lead, profile, onClose, onSuccess }) {
 }
 
 // =============================================
-// LEAD REQUEST MODAL (from earlier phases)
+// LEAD REQUEST MODAL
 // =============================================
 function LeadRequestModal({ profile, category, onClose, onSuccess }) {
   const { t } = useLang()
@@ -1290,20 +1479,21 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
 }
 
 // =============================================
-// CUSTOMER HOME — now with "View Quote" button on quoted leads
+// CUSTOMER HOME — now with tile search (Phase 2F)
 // =============================================
 function CustomerHome({ profile }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [tab, setTab] = useState('services')
   const [categories, setCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
   const [myReviewLeadIds, setMyReviewLeadIds] = useState([])
-  const [latestQuotes, setLatestQuotes] = useState({}) // map leadId → latest sent quote
+  const [latestQuotes, setLatestQuotes] = useState({})
   const [leadModalCategory, setLeadModalCategory] = useState(null)
   const [reviewLead, setReviewLead] = useState(null)
   const [viewQuote, setViewQuote] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
   const [reviewSuccess, setReviewSuccess] = useState(false)
+  const [tileSearch, setTileSearch] = useState('') // NEW: tile search
   const displayName = profile?.full_name || t.friend
 
   const tileStyles = [
@@ -1326,7 +1516,6 @@ function CustomerHome({ profile }) {
       .order('created_at', { ascending: false })
     if (data) {
       setMyLeads(data)
-      // Load latest 'sent' or 'accepted' quote per lead so we can show a button
       const leadIds = data.map((l) => l.id)
       if (leadIds.length > 0) {
         const { data: quotes } = await supabase.from('quotes')
@@ -1335,10 +1524,7 @@ function CustomerHome({ profile }) {
           .order('created_at', { ascending: false })
         if (quotes) {
           const map = {}
-          quotes.forEach((q) => {
-            // Only keep the most recent quote per lead (since they're ordered desc)
-            if (!map[q.lead_id]) map[q.lead_id] = q
-          })
+          quotes.forEach((q) => { if (!map[q.lead_id]) map[q.lead_id] = q })
           setLatestQuotes(map)
         }
       }
@@ -1373,6 +1559,18 @@ function CustomerHome({ profile }) {
     alert(action === 'accepted' ? t.quoteAccepted : t.quoteDeclined)
   }
 
+  // Filter tiles based on search (matches name, sub-text, or keywords in current language)
+  const filteredTiles = useMemo(() => {
+    const search = tileSearch.toLowerCase().trim()
+    if (!search) return TILES
+    return TILES.filter((tile) => {
+      const name = (t[tile.key] || '').toLowerCase()
+      const sub = (t[tile.key + 'Sub'] || '').toLowerCase()
+      const kws = (tile.keywords[lang] || []).map((k) => k.toLowerCase())
+      return name.includes(search) || sub.includes(search) || kws.some((k) => k.includes(search))
+    })
+  }, [tileSearch, lang, t])
+
   const activeCount = myLeads.filter(l => ['assigned', 'claimed', 'quoted'].includes(l.status)).length
   const pendingCount = myLeads.filter(l => l.status === 'new' || l.status === 'broadcast').length
 
@@ -1394,46 +1592,66 @@ function CustomerHome({ profile }) {
         </div>
         <div className="text-white/85 text-sm">{t.goodDay}</div>
         <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 700 }}>{displayName}</div>
-        <div className="bg-white/15 border border-white/30 rounded-xl px-3.5 py-2.5 flex items-center gap-2 mt-4">
-          <span className="text-white/70">🔍</span>
-          <span className="text-white/70 text-sm">{t.searchServices}</span>
-        </div>
+
+        {/* Search bar in header — only on services tab */}
+        {tab === 'services' && (
+          <div className="bg-white/15 border border-white/30 rounded-xl px-3.5 py-2.5 flex items-center gap-2 mt-4">
+            <span className="text-white/70">🔍</span>
+            <input type="text" value={tileSearch} onChange={(e) => setTileSearch(e.target.value)}
+              placeholder={t.searchTilesPlaceholder}
+              className="flex-1 bg-transparent text-white placeholder-white/60 text-sm outline-none" />
+            {tileSearch && (
+              <button onClick={() => setTileSearch('')} className="text-white/70 text-base">✕</button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
         {tab === 'services' && (
           <>
-            <div className="grid grid-cols-3 gap-2.5 mb-6">
-              {[
-                { num: activeCount, lbl: t.active, bg: '#FDECEA', c: '#C8202F', icon: '✓' },
-                { num: pendingCount, lbl: t.pending, bg: '#E8EEF7', c: '#1B3A6B', icon: '◷' },
-                { num: '—', lbl: t.rating, bg: '#E6F5ED', c: '#1F8A4C', icon: '★' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5" style={{ background: s.bg, color: s.c }}>{s.icon}</div>
-                  <div className="text-lg font-bold leading-none" style={{ color: '#1B3A6B' }}>{s.num}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
-                </div>
-              ))}
+            {!tileSearch && (
+              <div className="grid grid-cols-3 gap-2.5 mb-6">
+                {[
+                  { num: activeCount, lbl: t.active, bg: '#FDECEA', c: '#C8202F', icon: '✓' },
+                  { num: pendingCount, lbl: t.pending, bg: '#E8EEF7', c: '#1B3A6B', icon: '◷' },
+                  { num: '—', lbl: t.rating, bg: '#E6F5ED', c: '#1F8A4C', icon: '★' },
+                ].map((s, i) => (
+                  <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5" style={{ background: s.bg, color: s.c }}>{s.icon}</div>
+                    <div className="text-lg font-bold leading-none" style={{ color: '#1B3A6B' }}>{s.num}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-4">
+              {tileSearch ? `${filteredTiles.length} ${t.services.toLowerCase()}` : t.services}
             </div>
 
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-4">{t.services}</div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {TILES.map((tile, i) => {
-                const s = tileStyles[i % tileStyles.length]
-                return (
-                  <button key={tile.key} onClick={() => handleTileClick(tile.key)}
-                    className="bg-white rounded-2xl p-4 border border-black/5 text-left relative overflow-hidden hover:-translate-y-0.5 transition">
-                    <div className="absolute top-0 left-0 w-full h-1" style={{ background: s.color }} />
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: s.bg, fontSize: 22 }}>{tile.icon}</div>
-                    <div className="text-sm font-semibold leading-tight" style={{ color: '#1B3A6B' }}>{t[tile.key]}</div>
-                    <div className="text-[11px] text-gray-400 mt-0.5">{t[tile.key + 'Sub']}</div>
-                  </button>
-                )
-              })}
-            </div>
+            {filteredTiles.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow p-6 text-center">
+                <p className="text-gray-500 text-sm mb-1">{t.noResults}</p>
+                <p className="text-xs text-gray-400">{t.noResultsTry}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredTiles.map((tile, i) => {
+                  const s = tileStyles[i % tileStyles.length]
+                  return (
+                    <button key={tile.key} onClick={() => handleTileClick(tile.key)}
+                      className="bg-white rounded-2xl p-4 border border-black/5 text-left relative overflow-hidden hover:-translate-y-0.5 transition">
+                      <div className="absolute top-0 left-0 w-full h-1" style={{ background: s.color }} />
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: s.bg, fontSize: 22 }}>{tile.icon}</div>
+                      <div className="text-sm font-semibold leading-tight" style={{ color: '#1B3A6B' }}>{t[tile.key]}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{t[tile.key + 'Sub']}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </>
         )}
 
@@ -1467,12 +1685,11 @@ function CustomerHome({ profile }) {
                       </div>
                       {lead.details && <p className="text-xs text-gray-600 mt-1 mb-2">{lead.details}</p>}
 
-                      {/* View Quote button — visible if a quote exists */}
                       {quote && (
                         <button onClick={() => setViewQuote(quote)}
                           className="w-full py-2 rounded-lg text-white text-xs font-semibold mt-2 flex items-center justify-center gap-2"
                           style={{ backgroundColor: '#1B3A6B' }}>
-                          💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                          💰 {t.viewQuote} {quote.total > 0 && `— ${fmtMoney(quote.total)}`}
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
                             {quoteStatusBadge(quote.status, t).label}
                           </span>
@@ -1584,7 +1801,7 @@ function Countdown({ deadline }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD — now with Quote builder hooked up
+// VENDOR DASHBOARD — now with category subtabs + search (Phase 2F)
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
@@ -1594,15 +1811,16 @@ function VendorDashboard({ profile }) {
   const [myLeads, setMyLeads] = useState([])
   const [broadcastLeads, setBroadcastLeads] = useState([])
   const [myStats, setMyStats] = useState(null)
-  // Map leadId → latest quote (for showing "View / Edit" instead of "Send Quote")
   const [leadQuotes, setLeadQuotes] = useState({})
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
-  // Quote modal state
-  const [quoteBuilder, setQuoteBuilder] = useState(null) // { lead, existingQuote? }
+  const [quoteBuilder, setQuoteBuilder] = useState(null)
   const [viewQuote, setViewQuote] = useState(null)
+  // Phase 2F filters
+  const [leadsCategoryFilter, setLeadsCategoryFilter] = useState('all') // category_id or 'all'
+  const [leadsSearch, setLeadsSearch] = useState('')
 
   async function loadMyCategories() {
     const { data } = await supabase.from('vendor_categories')
@@ -1621,7 +1839,6 @@ function VendorDashboard({ profile }) {
       .order('created_at', { ascending: false })
     if (data) {
       setMyLeads(data)
-      // Load latest quote per lead (sent, accepted, declined — skip superseded)
       const leadIds = data.map((l) => l.id)
       if (leadIds.length > 0) {
         const { data: quotes } = await supabase.from('quotes')
@@ -1655,9 +1872,7 @@ function VendorDashboard({ profile }) {
   }, [])
 
   function toggleSelected(catId) {
-    setSelectedIds((prev) =>
-      prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
-    )
+    setSelectedIds((prev) => prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId])
   }
 
   async function submitRequests() {
@@ -1700,6 +1915,29 @@ function VendorDashboard({ profile }) {
 
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
   const availableCategories = allCategories.filter((c) => !myCategoryIds.includes(c.id))
+  // Approved categories — used for category subtabs
+  const approvedCategories = myCategories
+    .filter((mc) => mc.status === 'approved' && mc.categories)
+    .map((mc) => mc.categories)
+    .sort((a, b) => (t[a.key] || '').localeCompare(t[b.key] || ''))
+
+  // Apply filters: category + search
+  const filteredLeads = useMemo(() => {
+    let result = myLeads
+    if (leadsCategoryFilter !== 'all') {
+      result = result.filter((l) => l.category_id === leadsCategoryFilter)
+    }
+    const search = leadsSearch.toLowerCase().trim()
+    if (search) {
+      result = result.filter((l) => {
+        const name = (l.customer_name || '').toLowerCase()
+        const id = shortId(l.customer_id).toLowerCase()
+        const phone = (l.customer_phone || '').toLowerCase()
+        return name.includes(search) || id.includes(search) || phone.includes(search)
+      })
+    }
+    return result
+  }, [myLeads, leadsCategoryFilter, leadsSearch])
 
   function statusBadge(status) {
     if (status === 'approved') return { label: t.approved, color: '#1F8A4C' }
@@ -1724,9 +1962,7 @@ function VendorDashboard({ profile }) {
             <div className="flex-1 text-xs">
               <p className="font-semibold" style={{ color: '#1B3A6B' }}>{t.avgRating}</p>
               <p className="text-gray-500">{t.basedOn} {myStats.review_count} {myStats.review_count === 1 ? t.review : t.reviewsPlural}</p>
-              {myStats.below_threshold && (
-                <p className="mt-1" style={{ color: '#C8202F' }}>⚠ {t.flagged}</p>
-              )}
+              {myStats.below_threshold && <p className="mt-1" style={{ color: '#C8202F' }}>⚠ {t.flagged}</p>}
             </div>
           </div>
         )}
@@ -1786,11 +2022,44 @@ function VendorDashboard({ profile }) {
 
                 <div className="bg-white rounded-2xl shadow p-4">
                   <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
-                  {myLeads.length === 0 ? (
-                    <p className="text-gray-500 text-sm">{t.noLeads}</p>
+
+                  {/* Category subtabs — only show if vendor has 2+ approved categories */}
+                  {approvedCategories.length >= 2 && (
+                    <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+                      <button onClick={() => setLeadsCategoryFilter('all')}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                        style={leadsCategoryFilter === 'all'
+                          ? { background: '#1B3A6B', color: 'white' }
+                          : { background: '#FBF6EC', color: '#1B3A6B', border: '1px solid #e0e0e0' }}>
+                        {t.all} ({myLeads.length})
+                      </button>
+                      {approvedCategories.map((cat) => {
+                        const count = myLeads.filter((l) => l.category_id === cat.id).length
+                        return (
+                          <button key={cat.id} onClick={() => setLeadsCategoryFilter(cat.id)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                            style={leadsCategoryFilter === cat.id
+                              ? { background: '#1B3A6B', color: 'white' }
+                              : { background: '#FBF6EC', color: '#1B3A6B', border: '1px solid #e0e0e0' }}>
+                            {cat.icon} {t[cat.key]} ({count})
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Search */}
+                  {myLeads.length > 0 && (
+                    <SearchInput value={leadsSearch} onChange={setLeadsSearch} placeholder={t.searchCustomerPlaceholder} />
+                  )}
+
+                  {filteredLeads.length === 0 ? (
+                    <p className="text-gray-500 text-sm text-center py-4">
+                      {myLeads.length === 0 ? t.noLeads : t.noResults}
+                    </p>
                   ) : (
                     <div className="space-y-3">
-                      {myLeads.map((lead) => {
+                      {filteredLeads.map((lead) => {
                         const catKey = lead.categories?.key
                         const badge = leadStatusBadge(lead.status, t)
                         const showTimer = lead.status === 'assigned' && lead.claim_deadline
@@ -1819,17 +2088,16 @@ function VendorDashboard({ profile }) {
                             )}
 
                             <div className="text-xs space-y-1 mb-2">
-                              <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span></p>
+                              <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span> <span className="text-gray-400">· {t.customerId}: {shortId(lead.customer_id)}</span></p>
                               <p><span className="text-gray-500">{t.yourPhone}:</span> <a href={`tel:${lead.customer_phone}`} className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.customer_phone}</a></p>
                               {lead.details && <p className="text-gray-600 mt-2">{lead.details}</p>}
                             </div>
 
-                            {/* Quote summary bar if quote exists */}
                             {quote && (
                               <button onClick={() => setViewQuote(quote)}
                                 className="w-full py-2 mb-2 rounded-lg text-white text-xs font-semibold flex items-center justify-center gap-2"
                                 style={{ backgroundColor: '#1B3A6B' }}>
-                                💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                                💰 {t.viewQuote} {quote.total > 0 && `— ${fmtMoney(quote.total)}`}
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
                                   {quoteStatusBadge(quote.status, t).label}
                                 </span>
@@ -1957,13 +2225,11 @@ function VendorDashboard({ profile }) {
         </div>
       )}
 
-      {/* Quote builder modal */}
       {quoteBuilder && (
         <QuoteBuilderModal lead={quoteBuilder.lead} existingQuote={quoteBuilder.existingQuote}
           profile={profile} onClose={() => setQuoteBuilder(null)} onSuccess={handleQuoteSuccess} />
       )}
 
-      {/* Vendor's view of their own quote (read-only) */}
       {viewQuote && (
         <QuoteViewerModal quote={viewQuote} profile={profile} role="vendor"
           onClose={() => setViewQuote(null)} onResponded={() => setViewQuote(null)} />
@@ -1973,7 +2239,7 @@ function VendorDashboard({ profile }) {
 }
 
 // =============================================
-// VENDOR DETAIL (admin) — unchanged from Phase 2D
+// VENDOR DETAIL (admin)
 // =============================================
 function VendorDetail({ vendorId, profile, onBack }) {
   const { t } = useLang()
@@ -2074,6 +2340,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
             <div className="flex-1">
               <h2 className="font-bold text-lg" style={{ color: '#1B3A6B' }}>{vendor?.full_name || '(sin nombre)'}</h2>
               <p className="text-xs text-gray-500">{vendor?.email}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">ID: {shortId(vendor?.id)}</p>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white mt-1 inline-block"
                 style={{ backgroundColor: '#1F8A4C' }}>{vendor?.role}</span>
             </div>
@@ -2200,7 +2467,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
 }
 
 // =============================================
-// ADMIN DASHBOARD — leads tab now shows quote info
+// ADMIN DASHBOARD — users tab now has role subtabs + search + sort (Phase 2F)
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
@@ -2209,7 +2476,7 @@ function AdminDashboard({ profile }) {
   const [invites, setInvites] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [allLeads, setAllLeads] = useState([])
-  const [allLeadQuotes, setAllLeadQuotes] = useState({}) // leadId → latest quote
+  const [allLeadQuotes, setAllLeadQuotes] = useState({})
   const [pendingReviews, setPendingReviews] = useState([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [newRole, setNewRole] = useState('customer')
@@ -2218,6 +2485,11 @@ function AdminDashboard({ profile }) {
   const [copied, setCopied] = useState(false)
   const [selectedVendorId, setSelectedVendorId] = useState(null)
   const [viewQuote, setViewQuote] = useState(null)
+  // Phase 2F: users tab sub-filters
+  const [usersRoleFilter, setUsersRoleFilter] = useState('all')
+  const [usersSearch, setUsersSearch] = useState('')
+  const [usersActiveOnly, setUsersActiveOnly] = useState(false)
+  const [usersSortAlpha, setUsersSortAlpha] = useState(true) // true = A-Z, false = newest
 
   const allowedRoles = profile.role === 'owner'
     ? ['owner', 'manager', 'employee', 'vendor', 'customer']
@@ -2249,7 +2521,6 @@ function AdminDashboard({ profile }) {
       .order('created_at', { ascending: false })
     if (data) {
       setAllLeads(data)
-      // Load latest quote per lead
       const leadIds = data.map((l) => l.id)
       if (leadIds.length > 0) {
         const { data: quotes } = await supabase.from('quotes')
@@ -2331,12 +2602,50 @@ function AdminDashboard({ profile }) {
     return { label: t.active, color: '#1F8A4C' }
   }
 
+  // Phase 2F: filter + sort users
+  const filteredUsers = useMemo(() => {
+    let result = allUsers
+    if (usersRoleFilter !== 'all') {
+      result = result.filter((u) => u.role === usersRoleFilter)
+    }
+    if (usersActiveOnly) {
+      result = result.filter(isActiveUser)
+    }
+    const search = usersSearch.toLowerCase().trim()
+    if (search) {
+      result = result.filter((u) => {
+        const name = (u.full_name || '').toLowerCase()
+        const email = (u.email || '').toLowerCase()
+        const id = shortId(u.id).toLowerCase()
+        return name.includes(search) || email.includes(search) || id.includes(search)
+      })
+    }
+    // Sort
+    result = [...result] // copy
+    if (usersSortAlpha) {
+      result.sort((a, b) => (a.full_name || a.email || '').localeCompare(b.full_name || b.email || ''))
+    } else {
+      result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    }
+    return result
+  }, [allUsers, usersRoleFilter, usersSearch, usersActiveOnly, usersSortAlpha])
+
   if (selectedVendorId) {
     return <VendorDetail vendorId={selectedVendorId} profile={profile}
       onBack={() => { setSelectedVendorId(null); loadApprovals(); loadUsers(); loadAllLeads(); loadPendingReviews() }} />
   }
 
   const vendors = allUsers.filter((u) => u.role === 'vendor')
+
+  // Role counts for subtabs
+  const roleCounts = {
+    all: allUsers.length,
+    owner: allUsers.filter((u) => u.role === 'owner').length,
+    manager: allUsers.filter((u) => u.role === 'manager').length,
+    employee: allUsers.filter((u) => u.role === 'employee').length,
+    vendor: allUsers.filter((u) => u.role === 'vendor').length,
+    customer: allUsers.filter((u) => u.role === 'customer').length,
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBF6EC' }}>
@@ -2361,22 +2670,78 @@ function AdminDashboard({ profile }) {
           ))}
         </div>
 
+        {/* USERS TAB — Phase 2F with role subtabs + search + sort */}
         {tab === 'users' && (
           <div className="bg-white rounded-2xl shadow p-4">
-            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
-            {allUsers.length === 0 ? <p className="text-gray-500 text-sm">{t.noUsers}</p> : (
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users}</h3>
+
+            {/* Role subtabs */}
+            <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+              {[
+                { k: 'all', label: t.all, count: roleCounts.all, color: '#6B7280' },
+                { k: 'owner', label: t.roleOwner, count: roleCounts.owner, color: '#C8202F' },
+                { k: 'manager', label: t.roleManager, count: roleCounts.manager, color: '#1B3A6B' },
+                { k: 'employee', label: t.roleEmployee, count: roleCounts.employee, color: '#6B7280' },
+                { k: 'vendor', label: t.roleVendor, count: roleCounts.vendor, color: '#1F8A4C' },
+                { k: 'customer', label: t.roleCustomer, count: roleCounts.customer, color: '#E8A020' },
+              ].map((r) => (
+                <button key={r.k} onClick={() => setUsersRoleFilter(r.k)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+                  style={usersRoleFilter === r.k
+                    ? { background: r.color, color: 'white' }
+                    : { background: '#FBF6EC', color: r.color, border: '1px solid #e0e0e0' }}>
+                  {r.label} ({r.count})
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <SearchInput value={usersSearch} onChange={setUsersSearch} placeholder={t.searchPlaceholder} />
+
+            {/* Sort + active filter */}
+            <div className="flex gap-2 mb-3 text-xs">
+              <button onClick={() => setUsersSortAlpha(true)}
+                className="flex-1 py-1.5 rounded-lg font-semibold"
+                style={usersSortAlpha
+                  ? { background: '#1B3A6B', color: 'white' }
+                  : { background: '#FBF6EC', color: '#1B3A6B', border: '1px solid #e0e0e0' }}>
+                {t.sortAlphabetical}
+              </button>
+              <button onClick={() => setUsersSortAlpha(false)}
+                className="flex-1 py-1.5 rounded-lg font-semibold"
+                style={!usersSortAlpha
+                  ? { background: '#1B3A6B', color: 'white' }
+                  : { background: '#FBF6EC', color: '#1B3A6B', border: '1px solid #e0e0e0' }}>
+                {t.sortNewest}
+              </button>
+              <button onClick={() => setUsersActiveOnly(!usersActiveOnly)}
+                className="flex-1 py-1.5 rounded-lg font-semibold"
+                style={usersActiveOnly
+                  ? { background: '#1F8A4C', color: 'white' }
+                  : { background: '#FBF6EC', color: '#1F8A4C', border: '1px solid #e0e0e0' }}>
+                {usersActiveOnly ? '✓ ' : ''}{t.activeOnly}
+              </button>
+            </div>
+
+            {/* Results */}
+            {filteredUsers.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">
+                {allUsers.length === 0 ? t.noUsers : t.noResults}
+              </p>
+            ) : (
               <div className="space-y-2">
-                {allUsers.map((u) => {
+                {filteredUsers.map((u) => {
                   const isVendor = u.role === 'vendor'
                   return (
                     <div key={u.id} onClick={isVendor ? () => setSelectedVendorId(u.id) : undefined}
                       className={`border rounded-xl p-3 flex justify-between items-center ${isVendor ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                       style={{ borderColor: '#e0e0e0' }}>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="font-semibold" style={{ color: '#1B3A6B' }}>{u.full_name || '(sin nombre)'}</p>
-                        <p className="text-xs text-gray-500">{u.email}</p>
+                        <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                        <p className="text-[10px] text-gray-400">ID: {shortId(u.id)} · {fmtDate(u.created_at)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: roleColor(u.role) }}>{u.role}</span>
                         {isVendor && <span className="text-gray-400">›</span>}
                       </div>
@@ -2404,6 +2769,7 @@ function AdminDashboard({ profile }) {
                     <div className="flex-1">
                       <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{v.full_name || '(sin nombre)'}</p>
                       <p className="text-xs text-gray-500">{v.email}</p>
+                      <p className="text-[10px] text-gray-400">ID: {shortId(v.id)}</p>
                     </div>
                     <span className="text-gray-400">›</span>
                   </button>
@@ -2446,7 +2812,7 @@ function AdminDashboard({ profile }) {
                         <button onClick={() => setViewQuote(quote)}
                           className="w-full py-2 mt-2 rounded-lg text-white text-xs font-semibold flex items-center justify-center gap-2"
                           style={{ backgroundColor: '#1B3A6B' }}>
-                          💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                          💰 {t.viewQuote} {quote.total > 0 && `— ${fmtMoney(quote.total)}`}
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
                             {quoteStatusBadge(quote.status, t).label}
                           </span>
@@ -2619,7 +2985,6 @@ function AdminDashboard({ profile }) {
         </div>
       )}
 
-      {/* Admin's read-only view of a quote */}
       {viewQuote && (
         <QuoteViewerModal quote={viewQuote} profile={profile} role="admin"
           onClose={() => setViewQuote(null)} onResponded={() => setViewQuote(null)} />
