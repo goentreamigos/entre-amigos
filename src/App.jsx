@@ -1,6 +1,6 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 1B: Invite-only signup system
+// Phase 2A: Vendor profile + category requests + admin approval queue
 // Stack: React + Vite + Tailwind + Supabase
 // Roles: owner | manager | employee | vendor | customer
 // Languages: Spanish (default) | English | Portuguese
@@ -53,7 +53,6 @@ const T = {
     users: 'Usuarios',
     noUsers: 'No hay usuarios todavía.',
     comingSoon: 'Próximamente',
-    // ---- Invite system ----
     inviteUser: 'Invitar Usuario',
     selectRole: 'Selecciona el rol',
     generateInvite: 'Generar Invitación',
@@ -75,6 +74,25 @@ const T = {
     roleEmployee: 'Empleado',
     roleVendor: 'Proveedor',
     roleCustomer: 'Cliente',
+    // ---- Vendor categories (Phase 2A) ----
+    myCategories: 'Mis Categorías',
+    requestCategory: 'Solicitar Categoría',
+    requestNewCategory: 'Solicitar Nueva Categoría',
+    pendingApproval: 'Pendiente de Aprobación',
+    approved: 'Aprobado',
+    denied: 'Denegado',
+    noCategoriesYet: 'Aún no has solicitado categorías. Solicita una para empezar a recibir clientes.',
+    available: 'Disponibles',
+    requestSent: 'Solicitud enviada',
+    cancelRequest: 'Cancelar',
+    approvalQueue: 'Cola de Aprobaciones',
+    noApprovals: 'No hay solicitudes pendientes.',
+    approveBtn: 'Aprobar',
+    denyBtn: 'Denegar',
+    requestedAt: 'Solicitado',
+    vendor: 'Proveedor',
+    category: 'Categoría',
+    dashboard: 'Inicio',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
@@ -110,7 +128,6 @@ const T = {
     users: 'Users',
     noUsers: 'No users yet.',
     comingSoon: 'Coming soon',
-    // ---- Invite system ----
     inviteUser: 'Invite User',
     selectRole: 'Select role',
     generateInvite: 'Generate Invite',
@@ -132,6 +149,25 @@ const T = {
     roleEmployee: 'Employee',
     roleVendor: 'Vendor',
     roleCustomer: 'Customer',
+    // ---- Vendor categories (Phase 2A) ----
+    myCategories: 'My Categories',
+    requestCategory: 'Request Category',
+    requestNewCategory: 'Request New Category',
+    pendingApproval: 'Pending Approval',
+    approved: 'Approved',
+    denied: 'Denied',
+    noCategoriesYet: 'You haven\'t requested any categories yet. Request one to start receiving leads.',
+    available: 'Available',
+    requestSent: 'Request sent',
+    cancelRequest: 'Cancel',
+    approvalQueue: 'Approval Queue',
+    noApprovals: 'No pending requests.',
+    approveBtn: 'Approve',
+    denyBtn: 'Deny',
+    requestedAt: 'Requested',
+    vendor: 'Vendor',
+    category: 'Category',
+    dashboard: 'Dashboard',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
@@ -167,7 +203,6 @@ const T = {
     users: 'Usuários',
     noUsers: 'Nenhum usuário ainda.',
     comingSoon: 'Em breve',
-    // ---- Invite system ----
     inviteUser: 'Convidar Usuário',
     selectRole: 'Selecione a função',
     generateInvite: 'Gerar Convite',
@@ -189,13 +224,32 @@ const T = {
     roleEmployee: 'Funcionário',
     roleVendor: 'Fornecedor',
     roleCustomer: 'Cliente',
+    // ---- Vendor categories (Phase 2A) ----
+    myCategories: 'Minhas Categorias',
+    requestCategory: 'Solicitar Categoria',
+    requestNewCategory: 'Solicitar Nova Categoria',
+    pendingApproval: 'Aguardando Aprovação',
+    approved: 'Aprovado',
+    denied: 'Negado',
+    noCategoriesYet: 'Você ainda não solicitou categorias. Solicite uma para começar a receber clientes.',
+    available: 'Disponíveis',
+    requestSent: 'Solicitação enviada',
+    cancelRequest: 'Cancelar',
+    approvalQueue: 'Fila de Aprovação',
+    noApprovals: 'Nenhuma solicitação pendente.',
+    approveBtn: 'Aprovar',
+    denyBtn: 'Negar',
+    requestedAt: 'Solicitado',
+    vendor: 'Fornecedor',
+    category: 'Categoria',
+    dashboard: 'Início',
   },
 }
 
 const LangContext = createContext({ lang: 'es', t: T.es, setLang: () => {} })
 const useLang = () => useContext(LangContext)
 
-// ---- Service tiles config ----
+// ---- Service tiles config (matches categories table) ----
 const TILES = [
   { key: 'insurance', icon: '🛡️' },
   { key: 'doctor', icon: '🩺' },
@@ -209,7 +263,6 @@ const TILES = [
 
 // ---- Helper: generate a random short invite code ----
 function generateInviteCode() {
-  // 8-character code, easy to share
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
@@ -238,6 +291,29 @@ function Logo({ size = 'large' }) {
         <circle cx="100" cy="78" r="9" fill="#FBF6EC" />
         <path d="M 83 108 Q 100 90 117 108 L 117 125 L 83 125 Z" fill="#FBF6EC" />
       </svg>
+    </div>
+  )
+}
+
+// ---- Shared header used on logged-in screens ----
+function AppHeader({ profile, subtitle }) {
+  const { t } = useLang()
+  return (
+    <div className="px-5 pt-5 pb-10" style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #C8202F 100%)' }}>
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <Logo size="small" />
+          <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>entre amigos</div>
+        </div>
+        <button onClick={() => supabase.auth.signOut()} className="text-white text-sm font-semibold bg-white/20 border border-white/25 px-3 py-1.5 rounded-lg">
+          {t.signOut}
+        </button>
+      </div>
+      <div className="text-white/85 text-sm">{t.goodDay}</div>
+      <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 700 }}>
+        {profile?.full_name || profile?.email}
+      </div>
+      <div className="text-white/70 text-xs mt-1">{subtitle}</div>
     </div>
   )
 }
@@ -337,7 +413,7 @@ function AuthScreen() {
 }
 
 // =============================================
-// INVITE SIGNUP SCREEN (visited via invite link)
+// INVITE SIGNUP SCREEN
 // =============================================
 function InviteSignupScreen({ inviteCode }) {
   const { lang, t, setLang } = useLang()
@@ -351,7 +427,6 @@ function InviteSignupScreen({ inviteCode }) {
   const [msg, setMsg] = useState('')
   const [success, setSuccess] = useState(false)
 
-  // Validate invite code on load
   useEffect(() => {
     async function check() {
       const { data } = await supabase
@@ -373,14 +448,8 @@ function InviteSignupScreen({ inviteCode }) {
     setBusy(true)
     try {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            invite_code: inviteCode, // The trigger uses this to assign the right role
-          },
-        },
+        email, password,
+        options: { data: { full_name: fullName, invite_code: inviteCode } },
       })
       if (error) throw error
       setSuccess(true)
@@ -392,11 +461,9 @@ function InviteSignupScreen({ inviteCode }) {
   }
 
   if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
-        <div className="text-gray-400">{t.loading}</div>
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
+      <div className="text-gray-400">{t.loading}</div>
+    </div>
   }
 
   if (!valid) {
@@ -404,15 +471,11 @@ function InviteSignupScreen({ inviteCode }) {
       <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#FBF6EC' }}>
         <Logo size="medium" />
         <div className="text-center mt-4 max-w-sm">
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, color: '#C8202F' }}>
-            {t.invalidInvite}
-          </div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, color: '#C8202F' }}>{t.invalidInvite}</div>
           <p className="text-sm text-gray-500 mt-3">{t.inviteOnly}</p>
           <button onClick={() => (window.location.href = '/')}
             className="mt-6 px-5 py-2.5 rounded-xl text-white font-semibold text-sm"
-            style={{ backgroundColor: '#1B3A6B' }}>
-            {t.signIn}
-          </button>
+            style={{ backgroundColor: '#1B3A6B' }}>{t.signIn}</button>
         </div>
       </div>
     )
@@ -423,34 +486,24 @@ function InviteSignupScreen({ inviteCode }) {
       <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#FBF6EC' }}>
         <Logo size="medium" />
         <div className="text-center mt-4 max-w-sm">
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, color: '#1F8A4C' }}>
-            {t.welcomeNew}
-          </div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700, color: '#1F8A4C' }}>{t.welcomeNew}</div>
           <p className="text-sm text-gray-500 mt-3">{t.checkEmail}</p>
           <button onClick={() => (window.location.href = '/')}
             className="mt-6 px-5 py-2.5 rounded-xl text-white font-semibold text-sm"
-            style={{ backgroundColor: '#1B3A6B' }}>
-            {t.signIn}
-          </button>
+            style={{ backgroundColor: '#1B3A6B' }}>{t.signIn}</button>
         </div>
       </div>
     )
   }
 
   const roleLabel = t['role' + invite.role.charAt(0).toUpperCase() + invite.role.slice(1)]
-  const langs = [
-    { code: 'es', label: '🇲🇽 ES' },
-    { code: 'en', label: '🇺🇸 EN' },
-    { code: 'pt', label: '🇧🇷 PT' },
-  ]
+  const langs = [{ code: 'es', label: '🇲🇽 ES' }, { code: 'en', label: '🇺🇸 EN' }, { code: 'pt', label: '🇧🇷 PT' }]
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: '#FBF6EC' }}>
       <div className="text-center mb-6">
         <Logo size="medium" />
-        <div className="mt-2" style={{ fontFamily: 'Georgia, serif', fontSize: 32, fontWeight: 700, color: '#1B3A6B' }}>
-          entre amigos
-        </div>
+        <div className="mt-2" style={{ fontFamily: 'Georgia, serif', fontSize: 32, fontWeight: 700, color: '#1B3A6B' }}>entre amigos</div>
       </div>
 
       <div className="bg-white rounded-2xl p-7 w-full max-w-sm shadow-lg">
@@ -493,11 +546,7 @@ function InviteSignupScreen({ inviteCode }) {
             style={{ borderColor: '#e0e0e0' }} placeholder="••••••••" />
         </div>
 
-        {msg && (
-          <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>
-            {msg}
-          </div>
-        )}
+        {msg && <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{msg}</div>}
 
         <button onClick={handleSignup} disabled={busy}
           className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60"
@@ -531,9 +580,7 @@ function CustomerHome({ profile }) {
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Logo size="small" />
-            <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>
-              entre amigos
-            </div>
+            <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>entre amigos</div>
           </div>
           <div className="flex gap-2">
             <button className="w-9 h-9 rounded-lg bg-white/20 border border-white/25 flex items-center justify-center text-white">🔔</button>
@@ -601,20 +648,182 @@ function CustomerHome({ profile }) {
 }
 
 // =============================================
+// VENDOR DASHBOARD — now functional with categories!
+// =============================================
+function VendorDashboard({ profile }) {
+  const { t } = useLang()
+  const [tab, setTab] = useState('dashboard')
+  const [myCategories, setMyCategories] = useState([])
+  const [allCategories, setAllCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showRequestModal, setShowRequestModal] = useState(false)
+
+  // Load my requested/approved categories
+  async function loadMyCategories() {
+    const { data } = await supabase
+      .from('vendor_categories')
+      .select('*, categories(*)')
+      .eq('vendor_id', profile.id)
+      .order('requested_at', { ascending: false })
+    if (data) setMyCategories(data)
+  }
+
+  // Load full category list (so vendor can request new ones)
+  async function loadAllCategories() {
+    const { data } = await supabase.from('categories').select('*').eq('active', true)
+    if (data) setAllCategories(data)
+  }
+
+  useEffect(() => {
+    Promise.all([loadMyCategories(), loadAllCategories()]).then(() => setLoading(false))
+  }, [])
+
+  // Request a new category
+  async function requestCategory(categoryId) {
+    const { error } = await supabase.from('vendor_categories').insert({
+      vendor_id: profile.id,
+      category_id: categoryId,
+      status: 'pending',
+    })
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
+      await loadMyCategories()
+      setShowRequestModal(false)
+    }
+  }
+
+  // Cancel a pending request
+  async function cancelRequest(reqId) {
+    const { error } = await supabase.from('vendor_categories').delete().eq('id', reqId)
+    if (!error) loadMyCategories()
+  }
+
+  // Build a list of category IDs the vendor has already requested or been approved for
+  const myCategoryIds = myCategories.map((mc) => mc.category_id)
+  // Categories the vendor has NOT yet requested
+  const availableCategories = allCategories.filter((c) => !myCategoryIds.includes(c.id))
+
+  function statusBadge(status) {
+    if (status === 'approved') return { label: t.approved, color: '#1F8A4C' }
+    if (status === 'denied') return { label: t.denied, color: '#C8202F' }
+    return { label: t.pendingApproval, color: '#E8A020' }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#FBF6EC' }}>
+      <AppHeader profile={profile} subtitle={t.vendorPanel} />
+
+      <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
+        {loading ? (
+          <div className="text-center text-gray-400 py-10">{t.loading}</div>
+        ) : (
+          <>
+            {/* My Categories card */}
+            <div className="bg-white rounded-2xl shadow p-4 mb-5">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold" style={{ color: '#1B3A6B' }}>
+                  {t.myCategories} ({myCategories.length})
+                </h3>
+                <button onClick={() => setShowRequestModal(true)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                  style={{ backgroundColor: '#C8202F' }}>
+                  + {t.requestCategory}
+                </button>
+              </div>
+              {myCategories.length === 0 ? (
+                <p className="text-gray-500 text-sm">{t.noCategoriesYet}</p>
+              ) : (
+                <div className="space-y-2">
+                  {myCategories.map((mc) => {
+                    const badge = statusBadge(mc.status)
+                    const catKey = mc.categories?.key
+                    return (
+                      <div key={mc.id} className="border rounded-xl p-3 flex justify-between items-center" style={{ borderColor: '#e0e0e0' }}>
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 20 }}>{mc.categories?.icon}</span>
+                          <div>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>
+                              {catKey ? t[catKey] : '?'}
+                            </p>
+                            {mc.notes && <p className="text-xs text-gray-500">{mc.notes}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>
+                            {badge.label}
+                          </span>
+                          {mc.status === 'pending' && (
+                            <button onClick={() => cancelRequest(mc.id)}
+                              className="text-xs" style={{ color: '#C8202F' }}>
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-center text-gray-500">{t.comingSoon}: leads & quotes</p>
+          </>
+        )}
+      </div>
+
+      {/* Request Category Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4" style={{ color: '#1B3A6B' }}>{t.requestNewCategory}</h3>
+
+            {availableCategories.length === 0 ? (
+              <p className="text-sm text-gray-500 mb-4">No hay categorías disponibles para solicitar.</p>
+            ) : (
+              <div className="space-y-2 mb-4">
+                {availableCategories.map((cat) => (
+                  <button key={cat.id} onClick={() => requestCategory(cat.id)}
+                    className="w-full border rounded-xl p-3 flex items-center gap-3 hover:bg-gray-50 text-left"
+                    style={{ borderColor: '#e0e0e0' }}>
+                    <span style={{ fontSize: 22 }}>{cat.icon}</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{t[cat.key]}</p>
+                      <p className="text-xs text-gray-500">{t[cat.key + 'Sub']}</p>
+                    </div>
+                    <span className="text-xs" style={{ color: '#C8202F' }}>+ {t.requestSent.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button onClick={() => setShowRequestModal(false)}
+              className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================
 // ADMIN DASHBOARD (owner / manager / employee)
-// Now with invite generation!
+// Now with tabs: Users + Invites + Approval Queue
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
+  const [tab, setTab] = useState('users') // users | invites | approvals
   const [allUsers, setAllUsers] = useState([])
   const [invites, setInvites] = useState([])
+  const [pendingApprovals, setPendingApprovals] = useState([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [newRole, setNewRole] = useState('customer')
   const [generating, setGenerating] = useState(false)
   const [generatedLink, setGeneratedLink] = useState('')
   const [copied, setCopied] = useState(false)
 
-  // Owner can invite anyone. Manager/Employee can invite vendors/customers only.
   const allowedRoles = profile.role === 'owner'
     ? ['owner', 'manager', 'employee', 'vendor', 'customer']
     : ['vendor', 'customer']
@@ -622,6 +831,7 @@ function AdminDashboard({ profile }) {
   useEffect(() => {
     loadUsers()
     loadInvites()
+    loadApprovals()
   }, [])
 
   async function loadUsers() {
@@ -634,14 +844,40 @@ function AdminDashboard({ profile }) {
     if (data) setInvites(data)
   }
 
+  // Load pending category approval requests with vendor + category info joined
+  async function loadApprovals() {
+    const { data } = await supabase
+      .from('vendor_categories')
+      .select('*, categories(*), profiles!vendor_categories_vendor_id_fkey(*)')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: false })
+    if (data) setPendingApprovals(data)
+  }
+
+  // Approve a vendor category request
+  async function approveRequest(reqId) {
+    const { error } = await supabase
+      .from('vendor_categories')
+      .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
+      .eq('id', reqId)
+    if (!error) loadApprovals()
+  }
+
+  // Deny a vendor category request
+  async function denyRequest(reqId) {
+    const { error } = await supabase
+      .from('vendor_categories')
+      .update({ status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
+      .eq('id', reqId)
+    if (!error) loadApprovals()
+  }
+
   async function handleGenerateInvite() {
     setGenerating(true)
     setCopied(false)
     const code = generateInviteCode()
     const { error } = await supabase.from('invites').insert({
-      code,
-      role: newRole,
-      invited_by: profile.id,
+      code, role: newRole, invited_by: profile.id,
     })
     if (!error) {
       const link = `${window.location.origin}/?invite=${code}`
@@ -679,89 +915,139 @@ function AdminDashboard({ profile }) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBF6EC' }}>
-      <div className="px-5 pt-5 pb-10" style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #C8202F 100%)' }}>
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Logo size="small" />
-            <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>entre amigos</div>
-          </div>
-          <button onClick={() => supabase.auth.signOut()} className="text-white text-sm font-semibold bg-white/20 border border-white/25 px-3 py-1.5 rounded-lg">
-            {t.signOut}
-          </button>
-        </div>
-        <div className="text-white/85 text-sm">{t.goodDay}</div>
-        <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 700 }}>
-          {profile?.full_name || profile?.email}
-        </div>
-        <div className="text-white/70 text-xs mt-1">
-          {t.adminPanel} · <span className="font-semibold">{profile?.role}</span>
-        </div>
-      </div>
+      <AppHeader profile={profile} subtitle={`${t.adminPanel} · ${profile?.role}`} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* Invite User Button */}
-        <button onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setNewRole('customer') }}
-          className="w-full py-3 rounded-2xl text-white font-semibold text-sm mb-5 shadow"
-          style={{ backgroundColor: '#C8202F' }}>
-          + {t.inviteUser}
-        </button>
+        {/* Tab switcher */}
+        <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
+          {[
+            { k: 'users', label: t.users, count: allUsers.length },
+            { k: 'invites', label: t.activeInvites.split(' ')[0], count: invites.filter(i => !i.used && new Date(i.expires_at) > new Date()).length },
+            { k: 'approvals', label: t.approvalQueue.split(' ')[0], count: pendingApprovals.length },
+          ].map((tabItem) => (
+            <button key={tabItem.k} onClick={() => setTab(tabItem.k)}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold transition"
+              style={tab === tabItem.k
+                ? { background: '#1B3A6B', color: 'white' }
+                : { color: '#666' }}>
+              {tabItem.label} ({tabItem.count})
+            </button>
+          ))}
+        </div>
 
-        {/* Active Invites */}
-        <div className="bg-white rounded-2xl shadow p-4 mb-5">
-          <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.activeInvites} ({invites.filter(i => !i.used && new Date(i.expires_at) > new Date()).length})</h3>
-          {invites.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noInvites}</p>
-          ) : (
-            <div className="space-y-2">
-              {invites.slice(0, 10).map((inv) => {
-                const status = inviteStatus(inv)
-                const link = `${window.location.origin}/?invite=${inv.code}`
-                return (
-                  <div key={inv.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
-                    <div className="flex justify-between items-start mb-1">
-                      <div>
-                        <p className="font-mono font-bold text-sm" style={{ color: '#1B3A6B' }}>{inv.code}</p>
-                        <p className="text-xs text-gray-500">Role: <span className="font-semibold">{inv.role}</span></p>
-                      </div>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: status.color }}>
-                        {status.label}
-                      </span>
+        {/* USERS TAB */}
+        {tab === 'users' && (
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
+            {allUsers.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t.noUsers}</p>
+            ) : (
+              <div className="space-y-2">
+                {allUsers.map((u) => (
+                  <div key={u.id} className="border rounded-xl p-3 flex justify-between items-center" style={{ borderColor: '#e0e0e0' }}>
+                    <div>
+                      <p className="font-semibold" style={{ color: '#1B3A6B' }}>{u.full_name || '(sin nombre)'}</p>
+                      <p className="text-xs text-gray-500">{u.email}</p>
                     </div>
-                    {!inv.used && (
-                      <button onClick={() => { navigator.clipboard.writeText(link); alert(t.copied) }}
-                        className="text-xs mt-1" style={{ color: '#C8202F' }}>
-                        📋 {t.copyLink}
-                      </button>
-                    )}
+                    <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: roleColor(u.role) }}>
+                      {u.role}
+                    </span>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Users List */}
-        <div className="bg-white rounded-2xl shadow p-4">
-          <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
-          {allUsers.length === 0 ? (
-            <p className="text-gray-500 text-sm">{t.noUsers}</p>
-          ) : (
-            <div className="space-y-2">
-              {allUsers.map((u) => (
-                <div key={u.id} className="border rounded-xl p-3 flex justify-between items-center" style={{ borderColor: '#e0e0e0' }}>
-                  <div>
-                    <p className="font-semibold" style={{ color: '#1B3A6B' }}>{u.full_name || '(sin nombre)'}</p>
-                    <p className="text-xs text-gray-500">{u.email}</p>
-                  </div>
-                  <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: roleColor(u.role) }}>
-                    {u.role}
-                  </span>
+        {/* INVITES TAB */}
+        {tab === 'invites' && (
+          <>
+            <button onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setNewRole('customer') }}
+              className="w-full py-3 rounded-2xl text-white font-semibold text-sm mb-4 shadow"
+              style={{ backgroundColor: '#C8202F' }}>
+              + {t.inviteUser}
+            </button>
+            <div className="bg-white rounded-2xl shadow p-4">
+              <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.activeInvites}</h3>
+              {invites.length === 0 ? (
+                <p className="text-gray-500 text-sm">{t.noInvites}</p>
+              ) : (
+                <div className="space-y-2">
+                  {invites.slice(0, 20).map((inv) => {
+                    const status = inviteStatus(inv)
+                    const link = `${window.location.origin}/?invite=${inv.code}`
+                    return (
+                      <div key={inv.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <p className="font-mono font-bold text-sm" style={{ color: '#1B3A6B' }}>{inv.code}</p>
+                            <p className="text-xs text-gray-500">Role: <span className="font-semibold">{inv.role}</span></p>
+                          </div>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: status.color }}>
+                            {status.label}
+                          </span>
+                        </div>
+                        {!inv.used && (
+                          <button onClick={() => { navigator.clipboard.writeText(link); alert(t.copied) }}
+                            className="text-xs mt-1" style={{ color: '#C8202F' }}>
+                            📋 {t.copyLink}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
+
+        {/* APPROVALS TAB */}
+        {tab === 'approvals' && (
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.approvalQueue} ({pendingApprovals.length})</h3>
+            {pendingApprovals.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t.noApprovals}</p>
+            ) : (
+              <div className="space-y-2">
+                {pendingApprovals.map((req) => {
+                  const catKey = req.categories?.key
+                  const vendor = req.profiles
+                  return (
+                    <div key={req.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 22 }}>{req.categories?.icon}</span>
+                          <div>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>
+                              {catKey ? t[catKey] : '?'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {t.vendor}: {vendor?.full_name || vendor?.email || '(unknown)'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => approveRequest(req.id)}
+                          className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                          style={{ backgroundColor: '#1F8A4C' }}>
+                          ✓ {t.approveBtn}
+                        </button>
+                        <button onClick={() => denyRequest(req.id)}
+                          className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                          style={{ backgroundColor: '#C8202F' }}>
+                          ✕ {t.denyBtn}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Invite Modal */}
@@ -819,29 +1105,6 @@ function AdminDashboard({ profile }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD (placeholder)
-// =============================================
-function VendorDashboard({ profile }) {
-  const { t } = useLang()
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center" style={{ background: '#FBF6EC' }}>
-      <Logo size="medium" />
-      <div className="mt-4" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 700, color: '#1B3A6B' }}>
-        {t.vendorPanel}
-      </div>
-      <div className="text-gray-500 text-sm mt-2 max-w-xs">
-        {profile?.full_name} · {t.comingSoon}
-      </div>
-      <button onClick={() => supabase.auth.signOut()}
-        className="mt-6 px-5 py-2.5 rounded-xl text-white font-semibold text-sm"
-        style={{ backgroundColor: '#C8202F' }}>
-        {t.signOut}
-      </button>
-    </div>
-  )
-}
-
-// =============================================
 // ROOT APP
 // =============================================
 export default function App() {
@@ -858,7 +1121,6 @@ export default function App() {
     if (code) setInviteCode(code)
   }, [])
 
-  // Watch auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
@@ -883,22 +1145,17 @@ export default function App() {
 
   let screen
   if (loading) {
-    screen = (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
-        <div className="text-gray-400">{t.loading}</div>
-      </div>
-    )
+    screen = <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
+      <div className="text-gray-400">{t.loading}</div>
+    </div>
   } else if (inviteCode && !session) {
-    // Show invite signup screen if URL has ?invite=CODE and not logged in
     screen = <InviteSignupScreen inviteCode={inviteCode} />
   } else if (!session) {
     screen = <AuthScreen />
   } else if (!profile) {
-    screen = (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
-        <div className="text-gray-400">{t.loading}</div>
-      </div>
-    )
+    screen = <div className="min-h-screen flex items-center justify-center" style={{ background: '#FBF6EC' }}>
+      <div className="text-gray-400">{t.loading}</div>
+    </div>
   } else if (['owner', 'manager', 'employee'].includes(profile.role)) {
     screen = <AdminDashboard profile={profile} />
   } else if (profile.role === 'vendor') {
