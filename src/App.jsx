@@ -1,9 +1,10 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 2A enhanced:
-//   - Vendor multi-select category requests
-//   - Admin vendor profile pages (click vendor card to see full detail)
-//   - Approvals tab kept as quick queue
+// Phase 2B: Leads + round-robin assignment
+//   - Customer tile click → manual lead form (placeholder until bot)
+//   - Round-robin assigns lead to next approved vendor in that category
+//   - Vendors see assigned leads in "My Leads" tab
+//   - Admins see all leads in new "Leads" tab
 // =============================================
 
 import React, { useState, useEffect, createContext, useContext } from 'react'
@@ -107,6 +108,37 @@ const T = {
     noDeniedYet: 'Sin categorías denegadas',
     revoke: 'Revocar',
     confirmRevoke: '¿Estás seguro de revocar esta categoría?',
+    // ---- Leads (Phase 2B) ----
+    requestService: 'Solicitar Servicio',
+    yourName: 'Tu Nombre',
+    yourPhone: 'Teléfono',
+    tellUsMore: 'Cuéntanos qué necesitas',
+    detailsPlaceholder: 'Por ejemplo: Busco seguro para mi auto Honda Civic 2018...',
+    submitLead: 'Enviar Solicitud',
+    leadSent: '¡Solicitud enviada!',
+    leadSentDesc: 'Hemos asignado un proveedor que te contactará pronto.',
+    noVendorsAvailable: 'No hay proveedores aprobados para esta categoría todavía.',
+    botPlaceholder: 'Próximamente: chat con asistente IA',
+    myLeads: 'Mis Solicitudes',
+    leads: 'Solicitudes',
+    noLeads: 'No tienes solicitudes asignadas todavía.',
+    noLeadsCustomer: 'No has solicitado ningún servicio todavía.',
+    statusNew: 'Nuevo',
+    statusAssigned: 'Asignado',
+    statusClaimed: 'En Progreso',
+    statusQuoted: 'Cotizado',
+    statusCompleted: 'Completado',
+    statusExpired: 'Expirado',
+    statusBroadcast: 'Disponible',
+    claimLead: 'Aceptar',
+    sendQuote: 'Enviar Cotización',
+    markCompleted: 'Marcar Completado',
+    customer: 'Cliente',
+    leadDetails: 'Detalles',
+    assignedTo: 'Asignado a',
+    receivedAt: 'Recibido',
+    leadFromYou: 'Solicitud',
+    requiredField: 'Campo obligatorio',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
@@ -196,6 +228,37 @@ const T = {
     noDeniedYet: 'No denied categories',
     revoke: 'Revoke',
     confirmRevoke: 'Are you sure you want to revoke this category?',
+    // ---- Leads (Phase 2B) ----
+    requestService: 'Request Service',
+    yourName: 'Your Name',
+    yourPhone: 'Phone',
+    tellUsMore: 'Tell us what you need',
+    detailsPlaceholder: 'For example: I\'m looking for insurance for my 2018 Honda Civic...',
+    submitLead: 'Submit Request',
+    leadSent: 'Request sent!',
+    leadSentDesc: 'We\'ve assigned a vendor who will contact you soon.',
+    noVendorsAvailable: 'No approved vendors for this category yet.',
+    botPlaceholder: 'Coming soon: chat with AI assistant',
+    myLeads: 'My Leads',
+    leads: 'Leads',
+    noLeads: 'No leads assigned to you yet.',
+    noLeadsCustomer: 'You haven\'t requested any services yet.',
+    statusNew: 'New',
+    statusAssigned: 'Assigned',
+    statusClaimed: 'In Progress',
+    statusQuoted: 'Quoted',
+    statusCompleted: 'Completed',
+    statusExpired: 'Expired',
+    statusBroadcast: 'Available',
+    claimLead: 'Accept',
+    sendQuote: 'Send Quote',
+    markCompleted: 'Mark Completed',
+    customer: 'Customer',
+    leadDetails: 'Details',
+    assignedTo: 'Assigned to',
+    receivedAt: 'Received',
+    leadFromYou: 'Request',
+    requiredField: 'Required field',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
@@ -285,6 +348,37 @@ const T = {
     noDeniedYet: 'Sem categorias negadas',
     revoke: 'Revogar',
     confirmRevoke: 'Tem certeza que deseja revogar esta categoria?',
+    // ---- Leads (Phase 2B) ----
+    requestService: 'Solicitar Serviço',
+    yourName: 'Seu Nome',
+    yourPhone: 'Telefone',
+    tellUsMore: 'Conte-nos o que precisa',
+    detailsPlaceholder: 'Por exemplo: Procuro seguro para meu Honda Civic 2018...',
+    submitLead: 'Enviar Solicitação',
+    leadSent: 'Solicitação enviada!',
+    leadSentDesc: 'Atribuímos um fornecedor que entrará em contato em breve.',
+    noVendorsAvailable: 'Nenhum fornecedor aprovado para esta categoria ainda.',
+    botPlaceholder: 'Em breve: chat com assistente de IA',
+    myLeads: 'Minhas Solicitações',
+    leads: 'Solicitações',
+    noLeads: 'Nenhuma solicitação atribuída a você ainda.',
+    noLeadsCustomer: 'Você ainda não solicitou nenhum serviço.',
+    statusNew: 'Novo',
+    statusAssigned: 'Atribuído',
+    statusClaimed: 'Em Andamento',
+    statusQuoted: 'Cotado',
+    statusCompleted: 'Concluído',
+    statusExpired: 'Expirado',
+    statusBroadcast: 'Disponível',
+    claimLead: 'Aceitar',
+    sendQuote: 'Enviar Cotação',
+    markCompleted: 'Marcar Concluído',
+    customer: 'Cliente',
+    leadDetails: 'Detalhes',
+    assignedTo: 'Atribuído a',
+    receivedAt: 'Recebido',
+    leadFromYou: 'Solicitação',
+    requiredField: 'Campo obrigatório',
   },
 }
 
@@ -304,6 +398,13 @@ const TILES = [
 
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
+}
+
+// Format a date as short readable string
+function fmtDate(d) {
+  if (!d) return ''
+  const date = new Date(d)
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 // ---- LOGO ----
@@ -327,7 +428,7 @@ function Logo({ size = 'large' }) {
         <circle cx="70" cy="85" r="8" fill="#FBF6EC" />
         <path d="M 55 110 Q 70 95 85 110 L 85 125 L 55 125 Z" fill="#FBF6EC" />
         <circle cx="130" cy="85" r="8" fill="#FBF6EC" />
-        <path d="M 115 110 Q 130 95 145 110 L 145 125 L 115 125 Z" fill="#FBF6EC" />
+        <path d="M 115 110 Q 130 95 145 110 L 115 125 L 115 125 Z" fill="#FBF6EC" />
         <circle cx="100" cy="78" r="9" fill="#FBF6EC" />
         <path d="M 83 108 Q 100 90 117 108 L 117 125 L 83 125 Z" fill="#FBF6EC" />
       </svg>
@@ -335,7 +436,6 @@ function Logo({ size = 'large' }) {
   )
 }
 
-// ---- Language Switcher (compact, for headers) ----
 function LangSwitcher({ inverted = false }) {
   const { lang, setLang } = useLang()
   const [open, setOpen] = useState(false)
@@ -375,7 +475,6 @@ function LangSwitcher({ inverted = false }) {
   )
 }
 
-// ---- Shared header for logged-in screens ----
 function AppHeader({ profile, subtitle, onBack }) {
   const { t } = useLang()
   return (
@@ -404,6 +503,20 @@ function AppHeader({ profile, subtitle, onBack }) {
       <div className="text-white/70 text-xs mt-1">{subtitle}</div>
     </div>
   )
+}
+
+// Helper: get a colored badge for lead status
+function leadStatusBadge(status, t) {
+  const map = {
+    new: { label: t.statusNew, color: '#6B7280' },
+    assigned: { label: t.statusAssigned, color: '#E8A020' },
+    claimed: { label: t.statusClaimed, color: '#1B3A6B' },
+    quoted: { label: t.statusQuoted, color: '#1F8A4C' },
+    completed: { label: t.statusCompleted, color: '#1F8A4C' },
+    expired: { label: t.statusExpired, color: '#C8202F' },
+    broadcast: { label: t.statusBroadcast, color: '#C8202F' },
+  }
+  return map[status] || { label: status, color: '#6B7280' }
 }
 
 // =============================================
@@ -647,11 +760,114 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
+// LEAD REQUEST MODAL — customer fills this out
+// Placeholder until AI chatbot is built (Phase A later)
+// =============================================
+function LeadRequestModal({ profile, category, onClose, onSuccess }) {
+  const { t } = useLang()
+  const [name, setName] = useState(profile?.full_name || '')
+  const [phone, setPhone] = useState('')
+  const [details, setDetails] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit() {
+    setError('')
+    if (!name || !phone || !details) {
+      setError(t.requiredField)
+      return
+    }
+    setBusy(true)
+    try {
+      // Step 1: ask Supabase for the next round-robin vendor
+      const { data: vendorId, error: rpcErr } = await supabase
+        .rpc('assign_next_vendor', { p_category_id: category.id })
+      if (rpcErr) throw rpcErr
+
+      // Step 2: insert the lead — assigned if a vendor was found, otherwise 'new'
+      const leadRow = {
+        customer_id: profile.id,
+        category_id: category.id,
+        customer_name: name,
+        customer_phone: phone,
+        details: details,
+        assigned_vendor_id: vendorId || null,
+        assigned_at: vendorId ? new Date().toISOString() : null,
+        status: vendorId ? 'assigned' : 'new',
+      }
+      const { error: insertErr } = await supabase.from('leads').insert(leadRow)
+      if (insertErr) throw insertErr
+
+      onSuccess(vendorId)
+    } catch (e) {
+      setError(e.message || t.errGeneric)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-2 mb-4">
+          <span style={{ fontSize: 28 }}>{category.icon}</span>
+          <h3 className="text-lg font-bold" style={{ color: '#1B3A6B' }}>
+            {t.requestService}: {t[category.key]}
+          </h3>
+        </div>
+
+        {/* Bot placeholder note */}
+        <div className="text-xs italic text-gray-500 mb-4 p-2 rounded-lg" style={{ background: '#FBF6EC' }}>
+          💬 {t.botPlaceholder}
+        </div>
+
+        <div className="mb-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.yourName}</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none"
+            style={{ borderColor: '#e0e0e0' }} />
+        </div>
+
+        <div className="mb-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.yourPhone}</label>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none"
+            style={{ borderColor: '#e0e0e0' }} placeholder="555-555-5555" />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.tellUsMore}</label>
+          <textarea value={details} onChange={(e) => setDetails(e.target.value)}
+            rows={4}
+            className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none resize-none"
+            style={{ borderColor: '#e0e0e0' }} placeholder={t.detailsPlaceholder} />
+        </div>
+
+        {error && (
+          <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>
+        )}
+
+        <button onClick={submit} disabled={busy}
+          className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 mb-2"
+          style={{ backgroundColor: '#C8202F' }}>
+          {busy ? t.loading : t.submitLead}
+        </button>
+        <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================
 // CUSTOMER HOME
 // =============================================
 function CustomerHome({ profile }) {
   const { t } = useLang()
   const [tab, setTab] = useState('services')
+  const [categories, setCategories] = useState([])
+  const [myLeads, setMyLeads] = useState([])
+  const [leadModalCategory, setLeadModalCategory] = useState(null)
+  const [successMsg, setSuccessMsg] = useState(null) // {vendorId} or null
   const displayName = profile?.full_name || t.friend
 
   const tileStyles = [
@@ -660,6 +876,40 @@ function CustomerHome({ profile }) {
     { color: '#1B3A6B', bg: '#E8EEF7' },
     { color: '#E8A020', bg: '#FFF3DC' },
   ]
+
+  useEffect(() => {
+    loadCategories()
+    loadLeads()
+  }, [])
+
+  async function loadCategories() {
+    const { data } = await supabase.from('categories').select('*').eq('active', true)
+    if (data) setCategories(data)
+  }
+
+  async function loadLeads() {
+    const { data } = await supabase
+      .from('leads')
+      .select('*, categories(*)')
+      .eq('customer_id', profile.id)
+      .order('created_at', { ascending: false })
+    if (data) setMyLeads(data)
+  }
+
+  // Open lead form when a tile is clicked
+  function handleTileClick(tileKey) {
+    const cat = categories.find((c) => c.key === tileKey)
+    if (cat) setLeadModalCategory(cat)
+  }
+
+  function handleLeadSuccess(vendorId) {
+    setLeadModalCategory(null)
+    setSuccessMsg({ vendorId })
+    loadLeads()
+  }
+
+  const activeCount = myLeads.filter(l => ['assigned', 'claimed', 'quoted'].includes(l.status)).length
+  const pendingCount = myLeads.filter(l => l.status === 'new').length
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBF6EC' }}>
@@ -672,7 +922,6 @@ function CustomerHome({ profile }) {
           </div>
           <div className="flex gap-2 items-center">
             <LangSwitcher inverted={true} />
-            <button className="w-9 h-9 rounded-lg bg-white/20 border border-white/25 flex items-center justify-center text-white">🔔</button>
             <button onClick={() => supabase.auth.signOut()}
               className="w-9 h-9 rounded-lg bg-white/20 border border-white/25 flex items-center justify-center text-white"
               title={t.signOut}>⎋</button>
@@ -687,36 +936,78 @@ function CustomerHome({ profile }) {
       </div>
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
-        <div className="grid grid-cols-3 gap-2.5 mb-6">
-          {[
-            { num: '0', lbl: t.active, bg: '#FDECEA', c: '#C8202F', icon: '✓' },
-            { num: '0', lbl: t.pending, bg: '#E8EEF7', c: '#1B3A6B', icon: '◷' },
-            { num: '—', lbl: t.rating, bg: '#E6F5ED', c: '#1F8A4C', icon: '★' },
-          ].map((s, i) => (
-            <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5" style={{ background: s.bg, color: s.c }}>{s.icon}</div>
-              <div className="text-lg font-bold leading-none" style={{ color: '#1B3A6B' }}>{s.num}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+
+        {tab === 'services' && (
+          <>
+            <div className="grid grid-cols-3 gap-2.5 mb-6">
+              {[
+                { num: activeCount, lbl: t.active, bg: '#FDECEA', c: '#C8202F', icon: '✓' },
+                { num: pendingCount, lbl: t.pending, bg: '#E8EEF7', c: '#1B3A6B', icon: '◷' },
+                { num: '—', lbl: t.rating, bg: '#E6F5ED', c: '#1F8A4C', icon: '★' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-2xl p-3 text-center border border-black/5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5" style={{ background: s.bg, color: s.c }}>{s.icon}</div>
+                  <div className="text-lg font-bold leading-none" style={{ color: '#1B3A6B' }}>{s.num}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{s.lbl}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-4">{t.services}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-4">{t.services}</div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {TILES.map((tile, i) => {
-            const s = tileStyles[i % tileStyles.length]
-            return (
-              <button key={tile.key} onClick={() => alert(t[tile.key] + ' — ' + t.comingSoon)}
-                className="bg-white rounded-2xl p-4 border border-black/5 text-left relative overflow-hidden hover:-translate-y-0.5 transition">
-                <div className="absolute top-0 left-0 w-full h-1" style={{ background: s.color }} />
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: s.bg, fontSize: 22 }}>{tile.icon}</div>
-                <div className="text-sm font-semibold leading-tight" style={{ color: '#1B3A6B' }}>{t[tile.key]}</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">{t[tile.key + 'Sub']}</div>
-              </button>
-            )
-          })}
-        </div>
+            <div className="grid grid-cols-2 gap-3">
+              {TILES.map((tile, i) => {
+                const s = tileStyles[i % tileStyles.length]
+                return (
+                  <button key={tile.key} onClick={() => handleTileClick(tile.key)}
+                    className="bg-white rounded-2xl p-4 border border-black/5 text-left relative overflow-hidden hover:-translate-y-0.5 transition">
+                    <div className="absolute top-0 left-0 w-full h-1" style={{ background: s.color }} />
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2.5" style={{ background: s.bg, fontSize: 22 }}>{tile.icon}</div>
+                    <div className="text-sm font-semibold leading-tight" style={{ color: '#1B3A6B' }}>{t[tile.key]}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{t[tile.key + 'Sub']}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {tab === 'history' && (
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
+            {myLeads.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t.noLeadsCustomer}</p>
+            ) : (
+              <div className="space-y-2">
+                {myLeads.map((lead) => {
+                  const catKey = lead.categories?.key
+                  const badge = leadStatusBadge(lead.status, t)
+                  return (
+                    <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
+                          <div>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                      </div>
+                      {lead.details && <p className="text-xs text-gray-600 mt-1">{lead.details}</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(tab === 'messages' || tab === 'profile') && (
+          <div className="bg-white rounded-2xl shadow p-6 text-center">
+            <p className="text-gray-500">{t.comingSoon}</p>
+          </div>
+        )}
       </div>
 
       <div className="flex bg-white border-t border-black/5 pt-2.5 pb-3.5">
@@ -732,20 +1023,51 @@ function CustomerHome({ profile }) {
           </button>
         ))}
       </div>
+
+      {/* Lead request modal */}
+      {leadModalCategory && (
+        <LeadRequestModal profile={profile} category={leadModalCategory}
+          onClose={() => setLeadModalCategory(null)}
+          onSuccess={handleLeadSuccess} />
+      )}
+
+      {/* Success message after submitting a lead */}
+      {successMsg && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <div className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-3xl"
+              style={{ background: successMsg.vendorId ? '#1F8A4C' : '#E8A020' }}>
+              {successMsg.vendorId ? '✓' : '!'}
+            </div>
+            <h3 className="text-lg font-bold mb-2" style={{ color: '#1B3A6B' }}>
+              {successMsg.vendorId ? t.leadSent : t.noVendorsAvailable}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {successMsg.vendorId ? t.leadSentDesc : ''}
+            </p>
+            <button onClick={() => { setSuccessMsg(null); setTab('history') }}
+              className="w-full py-3 rounded-xl text-white font-semibold text-sm"
+              style={{ backgroundColor: '#1B3A6B' }}>
+              {t.done}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // =============================================
-// VENDOR DASHBOARD — multi-select categories
+// VENDOR DASHBOARD — now with My Leads tab
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
+  const [tab, setTab] = useState('leads') // leads | categories
   const [myCategories, setMyCategories] = useState([])
   const [allCategories, setAllCategories] = useState([])
+  const [myLeads, setMyLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
-  // Holds the IDs of categories the vendor has selected in the modal
   const [selectedIds, setSelectedIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -763,40 +1085,56 @@ function VendorDashboard({ profile }) {
     if (data) setAllCategories(data)
   }
 
+  // Load leads assigned to this vendor (joined with customer profile)
+  async function loadMyLeads() {
+    const { data } = await supabase
+      .from('leads')
+      .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
+      .eq('assigned_vendor_id', profile.id)
+      .order('created_at', { ascending: false })
+    if (data) setMyLeads(data)
+  }
+
   useEffect(() => {
-    Promise.all([loadMyCategories(), loadAllCategories()]).then(() => setLoading(false))
+    Promise.all([loadMyCategories(), loadAllCategories(), loadMyLeads()])
+      .then(() => setLoading(false))
   }, [])
 
-  // Toggle a category in the multi-select
   function toggleSelected(catId) {
     setSelectedIds((prev) =>
       prev.includes(catId) ? prev.filter((id) => id !== catId) : [...prev, catId]
     )
   }
 
-  // Submit all selected categories as pending requests in one go
   async function submitRequests() {
     if (selectedIds.length === 0) return
     setSubmitting(true)
     const rows = selectedIds.map((catId) => ({
-      vendor_id: profile.id,
-      category_id: catId,
-      status: 'pending',
+      vendor_id: profile.id, category_id: catId, status: 'pending',
     }))
     const { error } = await supabase.from('vendor_categories').insert(rows)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      await loadMyCategories()
-      setSelectedIds([])
-      setShowRequestModal(false)
-    }
+    if (error) { alert('Error: ' + error.message) }
+    else { await loadMyCategories(); setSelectedIds([]); setShowRequestModal(false) }
     setSubmitting(false)
   }
 
   async function cancelRequest(reqId) {
     const { error } = await supabase.from('vendor_categories').delete().eq('id', reqId)
     if (!error) loadMyCategories()
+  }
+
+  // Vendor actions on a lead
+  async function claimLead(leadId) {
+    await supabase.from('leads').update({ status: 'claimed' }).eq('id', leadId)
+    loadMyLeads()
+  }
+  async function sendQuote(leadId) {
+    await supabase.from('leads').update({ status: 'quoted' }).eq('id', leadId)
+    loadMyLeads()
+  }
+  async function completeLead(leadId) {
+    await supabase.from('leads').update({ status: 'completed' }).eq('id', leadId)
+    loadMyLeads()
   }
 
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
@@ -813,48 +1151,122 @@ function VendorDashboard({ profile }) {
       <AppHeader profile={profile} subtitle={t.vendorPanel} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
+        {/* Tab switcher */}
+        <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
+          {[
+            { k: 'leads', label: t.myLeads, count: myLeads.length },
+            { k: 'categories', label: t.myCategories, count: myCategories.length },
+          ].map((tabItem) => (
+            <button key={tabItem.k} onClick={() => setTab(tabItem.k)}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold transition"
+              style={tab === tabItem.k ? { background: '#1B3A6B', color: 'white' } : { color: '#666' }}>
+              {tabItem.label} ({tabItem.count})
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="text-center text-gray-400 py-10">{t.loading}</div>
         ) : (
           <>
-            <div className="bg-white rounded-2xl shadow p-4 mb-5">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold" style={{ color: '#1B3A6B' }}>{t.myCategories} ({myCategories.length})</h3>
-                <button onClick={() => { setShowRequestModal(true); setSelectedIds([]) }}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-                  style={{ backgroundColor: '#C8202F' }}>
-                  + {t.requestCategory}
-                </button>
-              </div>
-              {myCategories.length === 0 ? (
-                <p className="text-gray-500 text-sm">{t.noCategoriesYet}</p>
-              ) : (
-                <div className="space-y-2">
-                  {myCategories.map((mc) => {
-                    const badge = statusBadge(mc.status)
-                    const catKey = mc.categories?.key
-                    return (
-                      <div key={mc.id} className="border rounded-xl p-3 flex justify-between items-center" style={{ borderColor: '#e0e0e0' }}>
-                        <div className="flex items-center gap-2">
-                          <span style={{ fontSize: 20 }}>{mc.categories?.icon}</span>
-                          <div>
-                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
-                            {mc.notes && <p className="text-xs text-gray-500">{mc.notes}</p>}
+            {tab === 'leads' && (
+              <div className="bg-white rounded-2xl shadow p-4">
+                <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
+                {myLeads.length === 0 ? (
+                  <p className="text-gray-500 text-sm">{t.noLeads}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {myLeads.map((lead) => {
+                      const catKey = lead.categories?.key
+                      const badge = leadStatusBadge(lead.status, t)
+                      return (
+                        <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
+                              <div>
+                                <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                                <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                          </div>
+                          <div className="text-xs space-y-1 mb-2">
+                            <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span></p>
+                            <p><span className="text-gray-500">{t.yourPhone}:</span> <a href={`tel:${lead.customer_phone}`} className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.customer_phone}</a></p>
+                            {lead.details && <p className="text-gray-600 mt-2">{lead.details}</p>}
+                          </div>
+
+                          {/* Action buttons by status */}
+                          <div className="flex gap-2 mt-3">
+                            {lead.status === 'assigned' && (
+                              <button onClick={() => claimLead(lead.id)}
+                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                style={{ backgroundColor: '#1F8A4C' }}>
+                                ✓ {t.claimLead}
+                              </button>
+                            )}
+                            {lead.status === 'claimed' && (
+                              <button onClick={() => sendQuote(lead.id)}
+                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                style={{ backgroundColor: '#1B3A6B' }}>
+                                💰 {t.sendQuote}
+                              </button>
+                            )}
+                            {(lead.status === 'quoted' || lead.status === 'claimed') && (
+                              <button onClick={() => completeLead(lead.id)}
+                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                style={{ backgroundColor: '#6B7280' }}>
+                                ✓ {t.markCompleted}
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
-                          {mc.status === 'pending' && (
-                            <button onClick={() => cancelRequest(mc.id)} className="text-xs" style={{ color: '#C8202F' }}>✕</button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'categories' && (
+              <div className="bg-white rounded-2xl shadow p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-bold" style={{ color: '#1B3A6B' }}>{t.myCategories} ({myCategories.length})</h3>
+                  <button onClick={() => { setShowRequestModal(true); setSelectedIds([]) }}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                    style={{ backgroundColor: '#C8202F' }}>
+                    + {t.requestCategory}
+                  </button>
                 </div>
-              )}
-            </div>
-            <p className="text-xs text-center text-gray-500">{t.comingSoon}: leads & quotes</p>
+                {myCategories.length === 0 ? (
+                  <p className="text-gray-500 text-sm">{t.noCategoriesYet}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {myCategories.map((mc) => {
+                      const badge = statusBadge(mc.status)
+                      const catKey = mc.categories?.key
+                      return (
+                        <div key={mc.id} className="border rounded-xl p-3 flex justify-between items-center" style={{ borderColor: '#e0e0e0' }}>
+                          <div className="flex items-center gap-2">
+                            <span style={{ fontSize: 20 }}>{mc.categories?.icon}</span>
+                            <div>
+                              <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                            {mc.status === 'pending' && (
+                              <button onClick={() => cancelRequest(mc.id)} className="text-xs" style={{ color: '#C8202F' }}>✕</button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -878,7 +1290,6 @@ function VendorDashboard({ profile }) {
                       style={isSelected
                         ? { borderColor: '#1F8A4C', background: '#E6F5ED', borderWidth: 2 }
                         : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
-                      {/* Custom checkbox */}
                       <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                         style={isSelected
                           ? { background: '#1F8A4C', color: 'white' }
@@ -896,7 +1307,6 @@ function VendorDashboard({ profile }) {
               </div>
             )}
 
-            {/* Selected count + submit */}
             {selectedIds.length > 0 && (
               <div className="text-center text-xs mb-3" style={{ color: '#1F8A4C', fontWeight: 600 }}>
                 {selectedIds.length} {t.selectedCount}
@@ -918,8 +1328,7 @@ function VendorDashboard({ profile }) {
 }
 
 // =============================================
-// VENDOR DETAIL VIEW (admin clicks a vendor card)
-// Shows full info + all categories grouped by status
+// VENDOR DETAIL (admin click-through)
 // =============================================
 function VendorDetail({ vendorId, profile, onBack }) {
   const { t } = useLang()
@@ -928,10 +1337,8 @@ function VendorDetail({ vendorId, profile, onBack }) {
   const [loading, setLoading] = useState(true)
 
   async function loadData() {
-    // Load vendor profile
     const { data: v } = await supabase.from('profiles').select('*').eq('id', vendorId).single()
     if (v) setVendor(v)
-    // Load all their category requests
     const { data: cats } = await supabase
       .from('vendor_categories')
       .select('*, categories(*)')
@@ -943,29 +1350,23 @@ function VendorDetail({ vendorId, profile, onBack }) {
 
   useEffect(() => { loadData() }, [vendorId])
 
-  // Approve a request
   async function approveRequest(reqId) {
-    await supabase
-      .from('vendor_categories')
+    await supabase.from('vendor_categories')
       .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
       .eq('id', reqId)
     loadData()
   }
 
-  // Deny a request
   async function denyRequest(reqId) {
-    await supabase
-      .from('vendor_categories')
+    await supabase.from('vendor_categories')
       .update({ status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
       .eq('id', reqId)
     loadData()
   }
 
-  // Revoke an already-approved category (set back to denied)
   async function revokeApproved(reqId) {
     if (!window.confirm(t.confirmRevoke)) return
-    await supabase
-      .from('vendor_categories')
+    await supabase.from('vendor_categories')
       .update({ status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
       .eq('id', reqId)
     loadData()
@@ -977,12 +1378,10 @@ function VendorDetail({ vendorId, profile, onBack }) {
     </div>
   }
 
-  // Group categories by status for display
   const pending = vendorCats.filter((c) => c.status === 'pending')
   const approved = vendorCats.filter((c) => c.status === 'approved')
   const denied = vendorCats.filter((c) => c.status === 'denied')
 
-  // Card-style component for category rows
   function CatRow({ cat, actions }) {
     const catKey = cat.categories?.key
     return (
@@ -991,7 +1390,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
           <span style={{ fontSize: 20 }}>{cat.categories?.icon}</span>
           <div>
             <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
-            <p className="text-xs text-gray-500">{t.requestedAt}: {new Date(cat.requested_at).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-500">{t.requestedAt}: {fmtDate(cat.requested_at)}</p>
           </div>
         </div>
         {actions}
@@ -1004,7 +1403,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
       <AppHeader profile={profile} subtitle={`${t.adminPanel} · ${profile?.role}`} onBack={onBack} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
-        {/* Vendor profile card */}
         <div className="bg-white rounded-2xl shadow p-5 mb-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg"
@@ -1023,7 +1421,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
           </div>
         </div>
 
-        {/* Pending requests */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#E8A020' }}>●</span> {t.pendingApproval} ({pending.length})
@@ -1048,7 +1445,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        {/* Approved */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#1F8A4C' }}>●</span> {t.approved} ({approved.length})
@@ -1068,7 +1464,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        {/* Denied */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#C8202F' }}>●</span> {t.denied} ({denied.length})
@@ -1088,14 +1483,14 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        <p className="text-xs text-center text-gray-400 mt-4">{t.comingSoon}: reviews, leads, performance</p>
+        <p className="text-xs text-center text-gray-400 mt-4">{t.comingSoon}: reviews, leads stats</p>
       </div>
     </div>
   )
 }
 
 // =============================================
-// ADMIN DASHBOARD — with Vendors tab + drilldown
+// ADMIN DASHBOARD — now with Leads tab
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
@@ -1103,12 +1498,12 @@ function AdminDashboard({ profile }) {
   const [allUsers, setAllUsers] = useState([])
   const [invites, setInvites] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
+  const [allLeads, setAllLeads] = useState([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [newRole, setNewRole] = useState('customer')
   const [generating, setGenerating] = useState(false)
   const [generatedLink, setGeneratedLink] = useState('')
   const [copied, setCopied] = useState(false)
-  // If set, we drill into a vendor's detail page
   const [selectedVendorId, setSelectedVendorId] = useState(null)
 
   const allowedRoles = profile.role === 'owner'
@@ -1116,7 +1511,7 @@ function AdminDashboard({ profile }) {
     : ['vendor', 'customer']
 
   useEffect(() => {
-    loadUsers(); loadInvites(); loadApprovals()
+    loadUsers(); loadInvites(); loadApprovals(); loadAllLeads()
   }, [])
 
   async function loadUsers() {
@@ -1136,6 +1531,20 @@ function AdminDashboard({ profile }) {
       .eq('status', 'pending')
       .order('requested_at', { ascending: false })
     if (data) setPendingApprovals(data)
+  }
+
+  // Load all leads with customer + vendor info joined
+  async function loadAllLeads() {
+    const { data } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        categories(*),
+        customer:profiles!leads_customer_id_fkey(full_name, email),
+        vendor:profiles!leads_assigned_vendor_id_fkey(full_name, email)
+      `)
+      .order('created_at', { ascending: false })
+    if (data) setAllLeads(data)
   }
 
   async function approveRequest(reqId) {
@@ -1161,9 +1570,7 @@ function AdminDashboard({ profile }) {
     if (!error) {
       const link = `${window.location.origin}/?invite=${code}`
       setGeneratedLink(link); loadInvites()
-    } else {
-      alert('Error: ' + error.message)
-    }
+    } else { alert('Error: ' + error.message) }
     setGenerating(false)
   }
 
@@ -1183,20 +1590,17 @@ function AdminDashboard({ profile }) {
     return '#E8A020'
   }
 
-  function inviteStatus(inv) {
+  function inviteStatusBadge(inv) {
     if (inv.used) return { label: t.used, color: '#6B7280' }
     if (new Date(inv.expires_at) < new Date()) return { label: t.expired, color: '#C8202F' }
     return { label: t.active, color: '#1F8A4C' }
   }
 
-  // ---- VENDOR DETAIL DRILL-DOWN ----
-  // If a vendor is selected, show their detail page instead of the dashboard
   if (selectedVendorId) {
     return <VendorDetail vendorId={selectedVendorId} profile={profile}
-      onBack={() => { setSelectedVendorId(null); loadApprovals(); loadUsers() }} />
+      onBack={() => { setSelectedVendorId(null); loadApprovals(); loadUsers(); loadAllLeads() }} />
   }
 
-  // Filter the vendors-only subset for the Vendors tab
   const vendors = allUsers.filter((u) => u.role === 'vendor')
 
   return (
@@ -1205,11 +1609,12 @@ function AdminDashboard({ profile }) {
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* Tab switcher — now 4 tabs */}
+        {/* Tabs — now 5 tabs (Users, Vendors, Leads, Invites, Approvals) */}
         <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm overflow-x-auto">
           {[
             { k: 'users', label: t.users, count: allUsers.length },
             { k: 'vendors', label: t.vendors, count: vendors.length },
+            { k: 'leads', label: t.leads, count: allLeads.length },
             { k: 'invites', label: t.activeInvites.split(' ')[0], count: invites.filter(i => !i.used && new Date(i.expires_at) > new Date()).length },
             { k: 'approvals', label: t.approvalQueue, count: pendingApprovals.length },
           ].map((tabItem) => (
@@ -1221,7 +1626,6 @@ function AdminDashboard({ profile }) {
           ))}
         </div>
 
-        {/* USERS TAB */}
         {tab === 'users' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
@@ -1252,7 +1656,6 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
-        {/* VENDORS TAB — clickable cards */}
         {tab === 'vendors' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.vendors} ({vendors.length})</h3>
@@ -1280,7 +1683,42 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
-        {/* INVITES TAB */}
+        {/* LEADS TAB (admin) */}
+        {tab === 'leads' && (
+          <div className="bg-white rounded-2xl shadow p-4">
+            <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.leads} ({allLeads.length})</h3>
+            {allLeads.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t.noLeads}</p>
+            ) : (
+              <div className="space-y-3">
+                {allLeads.map((lead) => {
+                  const catKey = lead.categories?.key
+                  const badge = leadStatusBadge(lead.status, t)
+                  return (
+                    <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
+                          <div>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span> ({lead.customer_phone})</p>
+                        <p><span className="text-gray-500">{t.assignedTo}:</span> <span className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.vendor?.full_name || lead.vendor?.email || '—'}</span></p>
+                        {lead.details && <p className="text-gray-600 mt-1">{lead.details}</p>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'invites' && (
           <>
             <button onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setNewRole('customer') }}
@@ -1295,7 +1733,7 @@ function AdminDashboard({ profile }) {
               ) : (
                 <div className="space-y-2">
                   {invites.slice(0, 20).map((inv) => {
-                    const status = inviteStatus(inv)
+                    const status = inviteStatusBadge(inv)
                     const link = `${window.location.origin}/?invite=${inv.code}`
                     return (
                       <div key={inv.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
@@ -1319,7 +1757,6 @@ function AdminDashboard({ profile }) {
           </>
         )}
 
-        {/* APPROVALS TAB — quick queue, click vendor name to drill in */}
         {tab === 'approvals' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.approvalQueue} ({pendingApprovals.length})</h3>
@@ -1361,7 +1798,6 @@ function AdminDashboard({ profile }) {
         )}
       </div>
 
-      {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
