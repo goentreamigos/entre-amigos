@@ -1,10 +1,10 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 2B: Leads + round-robin assignment
-//   - Customer tile click → manual lead form (placeholder until bot)
-//   - Round-robin assigns lead to next approved vendor in that category
-//   - Vendors see assigned leads in "My Leads" tab
-//   - Admins see all leads in new "Leads" tab
+// Phase 2C: Timer + auto-broadcast
+//   - Customer can mark a lead as urgent (30min vs 60min deadline)
+//   - Countdown timer shown on assigned leads
+//   - Broadcast leads visible to all approved vendors (first-to-claim wins)
+//   - Missed leads tracked + shown on vendor profile
 // =============================================
 
 import React, { useState, useEffect, createContext, useContext } from 'react'
@@ -85,8 +85,6 @@ const T = {
     approved: 'Aprobado',
     denied: 'Denegado',
     noCategoriesYet: 'Aún no has solicitado categorías. Solicita una para empezar a recibir clientes.',
-    available: 'Disponibles',
-    requestSent: 'Solicitud enviada',
     cancelRequest: 'Cancelar',
     approvalQueue: 'Aprobaciones',
     noApprovals: 'No hay solicitudes pendientes.',
@@ -100,15 +98,12 @@ const T = {
     cancel: 'Cancelar',
     done: 'Hecho',
     back: '← Regresar',
-    vendorDetails: 'Detalles del Proveedor',
-    contactInfo: 'Información de Contacto',
     joinedOn: 'Se unió',
     noPending: 'Sin solicitudes pendientes',
     noApprovedYet: 'Sin categorías aprobadas',
     noDeniedYet: 'Sin categorías denegadas',
     revoke: 'Revocar',
     confirmRevoke: '¿Estás seguro de revocar esta categoría?',
-    // ---- Leads (Phase 2B) ----
     requestService: 'Solicitar Servicio',
     yourName: 'Tu Nombre',
     yourPhone: 'Teléfono',
@@ -119,9 +114,9 @@ const T = {
     leadSentDesc: 'Hemos asignado un proveedor que te contactará pronto.',
     noVendorsAvailable: 'No hay proveedores aprobados para esta categoría todavía.',
     botPlaceholder: 'Próximamente: chat con asistente IA',
-    myLeads: 'Mis Solicitudes',
-    leads: 'Solicitudes',
-    noLeads: 'No tienes solicitudes asignadas todavía.',
+    myLeads: 'Mis Leads',
+    leads: 'Leads',
+    noLeads: 'No tienes leads asignados todavía.',
     noLeadsCustomer: 'No has solicitado ningún servicio todavía.',
     statusNew: 'Nuevo',
     statusAssigned: 'Asignado',
@@ -134,11 +129,24 @@ const T = {
     sendQuote: 'Enviar Cotización',
     markCompleted: 'Marcar Completado',
     customer: 'Cliente',
-    leadDetails: 'Detalles',
     assignedTo: 'Asignado a',
-    receivedAt: 'Recibido',
-    leadFromYou: 'Solicitud',
     requiredField: 'Campo obligatorio',
+    // ---- Urgency + timer (Phase 2C) ----
+    markUrgent: 'Marcar como urgente',
+    urgentNote: '⚡ Urgente: el proveedor tendrá 30 minutos en vez de 60',
+    urgent: 'URGENTE',
+    timeRemaining: 'Tiempo restante',
+    expiredLabel: 'Tiempo agotado',
+    availableLeads: 'Leads Disponibles',
+    noAvailable: 'No hay leads disponibles ahora.',
+    claimNowDesc: 'Acepta rápido — el primero gana',
+    claimNow: 'Aceptar Ahora',
+    claimedByOther: 'Otro proveedor lo aceptó',
+    missedLeads: 'Leads Perdidos',
+    noMissed: 'Sin leads perdidos',
+    missedAt: 'Perdido el',
+    minutes: 'min',
+    hours: 'hrs',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
@@ -205,8 +213,6 @@ const T = {
     approved: 'Approved',
     denied: 'Denied',
     noCategoriesYet: 'You haven\'t requested any categories yet. Request one to start receiving leads.',
-    available: 'Available',
-    requestSent: 'Request sent',
     cancelRequest: 'Cancel',
     approvalQueue: 'Approvals',
     noApprovals: 'No pending requests.',
@@ -220,15 +226,12 @@ const T = {
     cancel: 'Cancel',
     done: 'Done',
     back: '← Back',
-    vendorDetails: 'Vendor Details',
-    contactInfo: 'Contact Info',
     joinedOn: 'Joined',
     noPending: 'No pending requests',
     noApprovedYet: 'No approved categories',
     noDeniedYet: 'No denied categories',
     revoke: 'Revoke',
     confirmRevoke: 'Are you sure you want to revoke this category?',
-    // ---- Leads (Phase 2B) ----
     requestService: 'Request Service',
     yourName: 'Your Name',
     yourPhone: 'Phone',
@@ -254,11 +257,24 @@ const T = {
     sendQuote: 'Send Quote',
     markCompleted: 'Mark Completed',
     customer: 'Customer',
-    leadDetails: 'Details',
     assignedTo: 'Assigned to',
-    receivedAt: 'Received',
-    leadFromYou: 'Request',
     requiredField: 'Required field',
+    // ---- Urgency + timer (Phase 2C) ----
+    markUrgent: 'Mark as urgent',
+    urgentNote: '⚡ Urgent: vendor has 30 minutes instead of 60',
+    urgent: 'URGENT',
+    timeRemaining: 'Time left',
+    expiredLabel: 'Time expired',
+    availableLeads: 'Available Leads',
+    noAvailable: 'No available leads right now.',
+    claimNowDesc: 'Claim fast — first one wins',
+    claimNow: 'Claim Now',
+    claimedByOther: 'Another vendor claimed it',
+    missedLeads: 'Missed Leads',
+    noMissed: 'No missed leads',
+    missedAt: 'Missed on',
+    minutes: 'min',
+    hours: 'hrs',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
@@ -325,8 +341,6 @@ const T = {
     approved: 'Aprovado',
     denied: 'Negado',
     noCategoriesYet: 'Você ainda não solicitou categorias. Solicite uma para começar a receber clientes.',
-    available: 'Disponíveis',
-    requestSent: 'Solicitação enviada',
     cancelRequest: 'Cancelar',
     approvalQueue: 'Aprovações',
     noApprovals: 'Nenhuma solicitação pendente.',
@@ -340,15 +354,12 @@ const T = {
     cancel: 'Cancelar',
     done: 'Pronto',
     back: '← Voltar',
-    vendorDetails: 'Detalhes do Fornecedor',
-    contactInfo: 'Informações de Contato',
     joinedOn: 'Entrou em',
     noPending: 'Sem solicitações pendentes',
     noApprovedYet: 'Sem categorias aprovadas',
     noDeniedYet: 'Sem categorias negadas',
     revoke: 'Revogar',
     confirmRevoke: 'Tem certeza que deseja revogar esta categoria?',
-    // ---- Leads (Phase 2B) ----
     requestService: 'Solicitar Serviço',
     yourName: 'Seu Nome',
     yourPhone: 'Telefone',
@@ -374,11 +385,24 @@ const T = {
     sendQuote: 'Enviar Cotação',
     markCompleted: 'Marcar Concluído',
     customer: 'Cliente',
-    leadDetails: 'Detalhes',
     assignedTo: 'Atribuído a',
-    receivedAt: 'Recebido',
-    leadFromYou: 'Solicitação',
     requiredField: 'Campo obrigatório',
+    // ---- Urgency + timer (Phase 2C) ----
+    markUrgent: 'Marcar como urgente',
+    urgentNote: '⚡ Urgente: fornecedor terá 30 minutos em vez de 60',
+    urgent: 'URGENTE',
+    timeRemaining: 'Tempo restante',
+    expiredLabel: 'Tempo esgotado',
+    availableLeads: 'Leads Disponíveis',
+    noAvailable: 'Nenhum lead disponível agora.',
+    claimNowDesc: 'Aceite rápido — o primeiro ganha',
+    claimNow: 'Aceitar Agora',
+    claimedByOther: 'Outro fornecedor aceitou',
+    missedLeads: 'Leads Perdidos',
+    noMissed: 'Nenhum lead perdido',
+    missedAt: 'Perdido em',
+    minutes: 'min',
+    hours: 'hrs',
   },
 }
 
@@ -400,11 +424,24 @@ function generateInviteCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
-// Format a date as short readable string
 function fmtDate(d) {
   if (!d) return ''
   const date = new Date(d)
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+// Format remaining time (deadline - now) as "Xm Ys" or "Xh Ym"
+function fmtCountdown(deadlineIso, t) {
+  if (!deadlineIso) return ''
+  const diff = new Date(deadlineIso) - new Date()
+  if (diff <= 0) return t.expiredLabel
+  const totalMin = Math.floor(diff / 60000)
+  const hours = Math.floor(totalMin / 60)
+  const mins = totalMin % 60
+  const secs = Math.floor((diff % 60000) / 1000)
+  if (hours > 0) return `${hours}${t.hours} ${mins}${t.minutes}`
+  if (mins > 0) return `${mins}${t.minutes} ${secs}s`
+  return `${secs}s`
 }
 
 // ---- LOGO ----
@@ -505,7 +542,6 @@ function AppHeader({ profile, subtitle, onBack }) {
   )
 }
 
-// Helper: get a colored badge for lead status
 function leadStatusBadge(status, t) {
   const map = {
     new: { label: t.statusNew, color: '#6B7280' },
@@ -536,11 +572,8 @@ function AuthScreen() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-    } catch (e) {
-      setMsg(e.message || t.errGeneric)
-    } finally {
-      setBusy(false)
-    }
+    } catch (e) { setMsg(e.message || t.errGeneric) }
+    finally { setBusy(false) }
   }
 
   const langs = [
@@ -630,13 +663,9 @@ function InviteSignupScreen({ inviteCode }) {
 
   useEffect(() => {
     async function check() {
-      const { data } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('code', inviteCode)
-        .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
-        .single()
+      const { data } = await supabase.from('invites').select('*')
+        .eq('code', inviteCode).eq('used', false)
+        .gt('expires_at', new Date().toISOString()).single()
       if (data) { setInvite(data); setValid(true) }
       setChecking(false)
     }
@@ -654,11 +683,8 @@ function InviteSignupScreen({ inviteCode }) {
       })
       if (error) throw error
       setSuccess(true)
-    } catch (e) {
-      setMsg(e.message || t.errGeneric)
-    } finally {
-      setBusy(false)
-    }
+    } catch (e) { setMsg(e.message || t.errGeneric) }
+    finally { setBusy(false) }
   }
 
   if (checking) {
@@ -760,40 +786,41 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
-// LEAD REQUEST MODAL — customer fills this out
-// Placeholder until AI chatbot is built (Phase A later)
+// LEAD REQUEST MODAL — now with urgent toggle
 // =============================================
 function LeadRequestModal({ profile, category, onClose, onSuccess }) {
   const { t } = useLang()
   const [name, setName] = useState(profile?.full_name || '')
   const [phone, setPhone] = useState('')
   const [details, setDetails] = useState('')
+  const [urgent, setUrgent] = useState(false) // NEW: urgent toggle
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   async function submit() {
     setError('')
     if (!name || !phone || !details) {
-      setError(t.requiredField)
-      return
+      setError(t.requiredField); return
     }
     setBusy(true)
     try {
-      // Step 1: ask Supabase for the next round-robin vendor
+      // Step 1: get next round-robin vendor
       const { data: vendorId, error: rpcErr } = await supabase
         .rpc('assign_next_vendor', { p_category_id: category.id })
       if (rpcErr) throw rpcErr
 
-      // Step 2: insert the lead — assigned if a vendor was found, otherwise 'new'
+      // Step 2: insert the lead with urgency flag
       const leadRow = {
         customer_id: profile.id,
         category_id: category.id,
         customer_name: name,
         customer_phone: phone,
         details: details,
+        urgent: urgent,
         assigned_vendor_id: vendorId || null,
         assigned_at: vendorId ? new Date().toISOString() : null,
         status: vendorId ? 'assigned' : 'new',
+        // claim_deadline is set automatically by DB trigger
       }
       const { error: insertErr } = await supabase.from('leads').insert(leadRow)
       if (insertErr) throw insertErr
@@ -816,7 +843,6 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
           </h3>
         </div>
 
-        {/* Bot placeholder note */}
         <div className="text-xs italic text-gray-500 mb-4 p-2 rounded-lg" style={{ background: '#FBF6EC' }}>
           💬 {t.botPlaceholder}
         </div>
@@ -843,13 +869,33 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
             style={{ borderColor: '#e0e0e0' }} placeholder={t.detailsPlaceholder} />
         </div>
 
+        {/* Urgent toggle */}
+        <button onClick={() => setUrgent(!urgent)}
+          className="w-full border rounded-xl p-3 flex items-center gap-3 text-left transition mb-2"
+          style={urgent
+            ? { borderColor: '#C8202F', background: '#FDECEA', borderWidth: 2 }
+            : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
+          <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+            style={urgent
+              ? { background: '#C8202F', color: 'white' }
+              : { background: 'white', border: '2px solid #d0d0d0' }}>
+            {urgent && '✓'}
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-sm" style={{ color: urgent ? '#9B1C10' : '#1B3A6B' }}>
+              ⚡ {t.markUrgent}
+            </p>
+            {urgent && <p className="text-xs mt-0.5" style={{ color: '#9B1C10' }}>{t.urgentNote}</p>}
+          </div>
+        </button>
+
         {error && (
           <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>
         )}
 
         <button onClick={submit} disabled={busy}
-          className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 mb-2"
-          style={{ backgroundColor: '#C8202F' }}>
+          className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 mb-2 mt-2"
+          style={{ backgroundColor: urgent ? '#C8202F' : '#1B3A6B' }}>
           {busy ? t.loading : t.submitLead}
         </button>
         <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
@@ -867,7 +913,7 @@ function CustomerHome({ profile }) {
   const [categories, setCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
   const [leadModalCategory, setLeadModalCategory] = useState(null)
-  const [successMsg, setSuccessMsg] = useState(null) // {vendorId} or null
+  const [successMsg, setSuccessMsg] = useState(null)
   const displayName = profile?.full_name || t.friend
 
   const tileStyles = [
@@ -877,10 +923,7 @@ function CustomerHome({ profile }) {
     { color: '#E8A020', bg: '#FFF3DC' },
   ]
 
-  useEffect(() => {
-    loadCategories()
-    loadLeads()
-  }, [])
+  useEffect(() => { loadCategories(); loadLeads() }, [])
 
   async function loadCategories() {
     const { data } = await supabase.from('categories').select('*').eq('active', true)
@@ -888,15 +931,12 @@ function CustomerHome({ profile }) {
   }
 
   async function loadLeads() {
-    const { data } = await supabase
-      .from('leads')
-      .select('*, categories(*)')
-      .eq('customer_id', profile.id)
+    const { data } = await supabase.from('leads')
+      .select('*, categories(*)').eq('customer_id', profile.id)
       .order('created_at', { ascending: false })
     if (data) setMyLeads(data)
   }
 
-  // Open lead form when a tile is clicked
   function handleTileClick(tileKey) {
     const cat = categories.find((c) => c.key === tileKey)
     if (cat) setLeadModalCategory(cat)
@@ -909,7 +949,7 @@ function CustomerHome({ profile }) {
   }
 
   const activeCount = myLeads.filter(l => ['assigned', 'claimed', 'quoted'].includes(l.status)).length
-  const pendingCount = myLeads.filter(l => l.status === 'new').length
+  const pendingCount = myLeads.filter(l => l.status === 'new' || l.status === 'broadcast').length
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#FBF6EC' }}>
@@ -988,7 +1028,10 @@ function CustomerHome({ profile }) {
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            <p className="font-semibold text-sm flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+                              {catKey ? t[catKey] : '?'}
+                              {lead.urgent && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#C8202F' }}>⚡ {t.urgent}</span>}
+                            </p>
                             <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
                           </div>
                         </div>
@@ -1024,14 +1067,12 @@ function CustomerHome({ profile }) {
         ))}
       </div>
 
-      {/* Lead request modal */}
       {leadModalCategory && (
         <LeadRequestModal profile={profile} category={leadModalCategory}
           onClose={() => setLeadModalCategory(null)}
           onSuccess={handleLeadSuccess} />
       )}
 
-      {/* Success message after submitting a lead */}
       {successMsg && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
@@ -1058,24 +1099,42 @@ function CustomerHome({ profile }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD — now with My Leads tab
+// COUNTDOWN — live updating timer component
+// =============================================
+function Countdown({ deadline }) {
+  const { t } = useLang()
+  const [_, setTick] = useState(0) // dummy state to force re-render every second
+  useEffect(() => {
+    const interval = setInterval(() => setTick((n) => n + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+  const text = fmtCountdown(deadline, t)
+  const isExpired = text === t.expiredLabel
+  return (
+    <span className="text-xs font-bold" style={{ color: isExpired ? '#C8202F' : '#E8A020' }}>
+      ⏱ {text}
+    </span>
+  )
+}
+
+// =============================================
+// VENDOR DASHBOARD — adds Available Leads section + countdowns
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
-  const [tab, setTab] = useState('leads') // leads | categories
+  const [tab, setTab] = useState('leads')
   const [myCategories, setMyCategories] = useState([])
   const [allCategories, setAllCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
+  const [broadcastLeads, setBroadcastLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
   async function loadMyCategories() {
-    const { data } = await supabase
-      .from('vendor_categories')
-      .select('*, categories(*)')
-      .eq('vendor_id', profile.id)
+    const { data } = await supabase.from('vendor_categories')
+      .select('*, categories(*)').eq('vendor_id', profile.id)
       .order('requested_at', { ascending: false })
     if (data) setMyCategories(data)
   }
@@ -1085,19 +1144,30 @@ function VendorDashboard({ profile }) {
     if (data) setAllCategories(data)
   }
 
-  // Load leads assigned to this vendor (joined with customer profile)
   async function loadMyLeads() {
-    const { data } = await supabase
-      .from('leads')
+    const { data } = await supabase.from('leads')
       .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
       .eq('assigned_vendor_id', profile.id)
       .order('created_at', { ascending: false })
     if (data) setMyLeads(data)
   }
 
+  // Load broadcast leads (RLS auto-filters to vendor's approved categories)
+  async function loadBroadcastLeads() {
+    const { data } = await supabase.from('leads')
+      .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
+      .eq('status', 'broadcast')
+      .order('broadcast_at', { ascending: false })
+    if (data) setBroadcastLeads(data)
+  }
+
+  // Refresh leads periodically so vendors see new broadcasts / status changes
   useEffect(() => {
-    Promise.all([loadMyCategories(), loadAllCategories(), loadMyLeads()])
+    Promise.all([loadMyCategories(), loadAllCategories(), loadMyLeads(), loadBroadcastLeads()])
       .then(() => setLoading(false))
+    // Refresh every 30 seconds
+    const refresh = setInterval(() => { loadMyLeads(); loadBroadcastLeads() }, 30000)
+    return () => clearInterval(refresh)
   }, [])
 
   function toggleSelected(catId) {
@@ -1123,7 +1193,7 @@ function VendorDashboard({ profile }) {
     if (!error) loadMyCategories()
   }
 
-  // Vendor actions on a lead
+  // Claim an assigned lead (already mine)
   async function claimLead(leadId) {
     await supabase.from('leads').update({ status: 'claimed' }).eq('id', leadId)
     loadMyLeads()
@@ -1135,6 +1205,21 @@ function VendorDashboard({ profile }) {
   async function completeLead(leadId) {
     await supabase.from('leads').update({ status: 'completed' }).eq('id', leadId)
     loadMyLeads()
+  }
+
+  // Claim a BROADCAST lead — calls server function for atomic claim
+  async function claimBroadcastLead(leadId) {
+    const { data, error } = await supabase.rpc('claim_broadcast_lead', { p_lead_id: leadId })
+    if (error) { alert('Error: ' + error.message); return }
+    if (data === true) {
+      // Successfully claimed
+      loadMyLeads()
+      loadBroadcastLeads()
+    } else {
+      // Someone else got it first
+      alert(t.claimedByOther)
+      loadBroadcastLeads()
+    }
   }
 
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
@@ -1151,7 +1236,6 @@ function VendorDashboard({ profile }) {
       <AppHeader profile={profile} subtitle={t.vendorPanel} />
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
-        {/* Tab switcher */}
         <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
           {[
             { k: 'leads', label: t.myLeads, count: myLeads.length },
@@ -1170,63 +1254,115 @@ function VendorDashboard({ profile }) {
         ) : (
           <>
             {tab === 'leads' && (
-              <div className="bg-white rounded-2xl shadow p-4">
-                <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
-                {myLeads.length === 0 ? (
-                  <p className="text-gray-500 text-sm">{t.noLeads}</p>
-                ) : (
-                  <div className="space-y-3">
-                    {myLeads.map((lead) => {
-                      const catKey = lead.categories?.key
-                      const badge = leadStatusBadge(lead.status, t)
-                      return (
-                        <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                              <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
-                              <div>
-                                <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
-                                <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+              <>
+                {/* AVAILABLE LEADS (broadcast) section */}
+                {broadcastLeads.length > 0 && (
+                  <div className="bg-white rounded-2xl shadow p-4 mb-4 border-2" style={{ borderColor: '#C8202F' }}>
+                    <h3 className="font-bold mb-1 flex items-center gap-2" style={{ color: '#C8202F' }}>
+                      📢 {t.availableLeads} ({broadcastLeads.length})
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-3">{t.claimNowDesc}</p>
+                    <div className="space-y-3">
+                      {broadcastLeads.map((lead) => {
+                        const catKey = lead.categories?.key
+                        return (
+                          <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#FDECEA', background: '#FFF9F8' }}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
+                                <div>
+                                  <p className="font-semibold text-sm flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+                                    {catKey ? t[catKey] : '?'}
+                                    {lead.urgent && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#C8202F' }}>⚡ {t.urgent}</span>}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+                                </div>
                               </div>
                             </div>
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                            {lead.details && <p className="text-xs text-gray-600 mt-2 mb-2">{lead.details}</p>}
+                            <button onClick={() => claimBroadcastLead(lead.id)}
+                              className="w-full py-2 rounded-lg text-white text-xs font-semibold"
+                              style={{ backgroundColor: '#C8202F' }}>
+                              📢 {t.claimNow}
+                            </button>
                           </div>
-                          <div className="text-xs space-y-1 mb-2">
-                            <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span></p>
-                            <p><span className="text-gray-500">{t.yourPhone}:</span> <a href={`tel:${lead.customer_phone}`} className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.customer_phone}</a></p>
-                            {lead.details && <p className="text-gray-600 mt-2">{lead.details}</p>}
-                          </div>
-
-                          {/* Action buttons by status */}
-                          <div className="flex gap-2 mt-3">
-                            {lead.status === 'assigned' && (
-                              <button onClick={() => claimLead(lead.id)}
-                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
-                                style={{ backgroundColor: '#1F8A4C' }}>
-                                ✓ {t.claimLead}
-                              </button>
-                            )}
-                            {lead.status === 'claimed' && (
-                              <button onClick={() => sendQuote(lead.id)}
-                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
-                                style={{ backgroundColor: '#1B3A6B' }}>
-                                💰 {t.sendQuote}
-                              </button>
-                            )}
-                            {(lead.status === 'quoted' || lead.status === 'claimed') && (
-                              <button onClick={() => completeLead(lead.id)}
-                                className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
-                                style={{ backgroundColor: '#6B7280' }}>
-                                ✓ {t.markCompleted}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
+
+                {/* MY ASSIGNED / IN-PROGRESS leads */}
+                <div className="bg-white rounded-2xl shadow p-4">
+                  <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.myLeads} ({myLeads.length})</h3>
+                  {myLeads.length === 0 ? (
+                    <p className="text-gray-500 text-sm">{t.noLeads}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {myLeads.map((lead) => {
+                        const catKey = lead.categories?.key
+                        const badge = leadStatusBadge(lead.status, t)
+                        const showTimer = lead.status === 'assigned' && lead.claim_deadline
+                        return (
+                          <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
+                                <div>
+                                  <p className="font-semibold text-sm flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+                                    {catKey ? t[catKey] : '?'}
+                                    {lead.urgent && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#C8202F' }}>⚡ {t.urgent}</span>}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
+                                </div>
+                              </div>
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
+                            </div>
+
+                            {/* Countdown for newly-assigned leads */}
+                            {showTimer && (
+                              <div className="mb-2 p-2 rounded-lg flex items-center justify-between" style={{ background: '#FFF3DC' }}>
+                                <span className="text-xs text-gray-600">{t.timeRemaining}:</span>
+                                <Countdown deadline={lead.claim_deadline} />
+                              </div>
+                            )}
+
+                            <div className="text-xs space-y-1 mb-2">
+                              <p><span className="text-gray-500">{t.customer}:</span> <span className="font-semibold" style={{ color: '#1B3A6B' }}>{lead.customer_name}</span></p>
+                              <p><span className="text-gray-500">{t.yourPhone}:</span> <a href={`tel:${lead.customer_phone}`} className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.customer_phone}</a></p>
+                              {lead.details && <p className="text-gray-600 mt-2">{lead.details}</p>}
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              {lead.status === 'assigned' && (
+                                <button onClick={() => claimLead(lead.id)}
+                                  className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                  style={{ backgroundColor: '#1F8A4C' }}>
+                                  ✓ {t.claimLead}
+                                </button>
+                              )}
+                              {lead.status === 'claimed' && (
+                                <button onClick={() => sendQuote(lead.id)}
+                                  className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                  style={{ backgroundColor: '#1B3A6B' }}>
+                                  💰 {t.sendQuote}
+                                </button>
+                              )}
+                              {(lead.status === 'quoted' || lead.status === 'claimed') && (
+                                <button onClick={() => completeLead(lead.id)}
+                                  className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
+                                  style={{ backgroundColor: '#6B7280' }}>
+                                  ✓ {t.markCompleted}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
 
             {tab === 'categories' && (
@@ -1271,7 +1407,6 @@ function VendorDashboard({ profile }) {
         )}
       </div>
 
-      {/* Multi-select categories modal */}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[85vh] flex flex-col">
@@ -1328,23 +1463,26 @@ function VendorDashboard({ profile }) {
 }
 
 // =============================================
-// VENDOR DETAIL (admin click-through)
+// VENDOR DETAIL — now also shows missed leads
 // =============================================
 function VendorDetail({ vendorId, profile, onBack }) {
   const { t } = useLang()
   const [vendor, setVendor] = useState(null)
   const [vendorCats, setVendorCats] = useState([])
+  const [missedLeads, setMissedLeads] = useState([])
   const [loading, setLoading] = useState(true)
 
   async function loadData() {
     const { data: v } = await supabase.from('profiles').select('*').eq('id', vendorId).single()
     if (v) setVendor(v)
-    const { data: cats } = await supabase
-      .from('vendor_categories')
-      .select('*, categories(*)')
-      .eq('vendor_id', vendorId)
+    const { data: cats } = await supabase.from('vendor_categories')
+      .select('*, categories(*)').eq('vendor_id', vendorId)
       .order('requested_at', { ascending: false })
     if (cats) setVendorCats(cats)
+    const { data: missed } = await supabase.from('missed_leads')
+      .select('*, leads(*, categories(*))').eq('vendor_id', vendorId)
+      .order('missed_at', { ascending: false })
+    if (missed) setMissedLeads(missed)
     setLoading(false)
   }
 
@@ -1483,14 +1621,41 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        <p className="text-xs text-center text-gray-400 mt-4">{t.comingSoon}: reviews, leads stats</p>
+        {/* MISSED LEADS section */}
+        <div className="bg-white rounded-2xl shadow p-4 mb-4">
+          <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+            <span style={{ color: '#C8202F' }}>●</span> {t.missedLeads} ({missedLeads.length})
+          </h3>
+          {missedLeads.length === 0 ? (
+            <p className="text-gray-500 text-sm">{t.noMissed}</p>
+          ) : (
+            <div className="space-y-2">
+              {missedLeads.map((m) => {
+                const catKey = m.leads?.categories?.key
+                return (
+                  <div key={m.id} className="border rounded-xl p-3" style={{ borderColor: '#FDECEA', background: '#FFF9F8' }}>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize: 18 }}>{m.leads?.categories?.icon}</span>
+                      <div>
+                        <p className="font-semibold text-sm" style={{ color: '#9B1C10' }}>{catKey ? t[catKey] : '?'}</p>
+                        <p className="text-xs text-gray-500">{t.missedAt}: {fmtDate(m.missed_at)}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-center text-gray-400 mt-4">{t.comingSoon}: reviews</p>
       </div>
     </div>
   )
 }
 
 // =============================================
-// ADMIN DASHBOARD — now with Leads tab
+// ADMIN DASHBOARD
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
@@ -1510,39 +1675,27 @@ function AdminDashboard({ profile }) {
     ? ['owner', 'manager', 'employee', 'vendor', 'customer']
     : ['vendor', 'customer']
 
-  useEffect(() => {
-    loadUsers(); loadInvites(); loadApprovals(); loadAllLeads()
-  }, [])
+  useEffect(() => { loadUsers(); loadInvites(); loadApprovals(); loadAllLeads() }, [])
 
   async function loadUsers() {
     const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     if (data) setAllUsers(data)
   }
-
   async function loadInvites() {
     const { data } = await supabase.from('invites').select('*').order('created_at', { ascending: false })
     if (data) setInvites(data)
   }
-
   async function loadApprovals() {
-    const { data } = await supabase
-      .from('vendor_categories')
+    const { data } = await supabase.from('vendor_categories')
       .select('*, categories(*), profiles!vendor_categories_vendor_id_fkey(*)')
-      .eq('status', 'pending')
-      .order('requested_at', { ascending: false })
+      .eq('status', 'pending').order('requested_at', { ascending: false })
     if (data) setPendingApprovals(data)
   }
-
-  // Load all leads with customer + vendor info joined
   async function loadAllLeads() {
-    const { data } = await supabase
-      .from('leads')
-      .select(`
-        *,
-        categories(*),
+    const { data } = await supabase.from('leads')
+      .select(`*, categories(*),
         customer:profiles!leads_customer_id_fkey(full_name, email),
-        vendor:profiles!leads_assigned_vendor_id_fkey(full_name, email)
-      `)
+        vendor:profiles!leads_assigned_vendor_id_fkey(full_name, email)`)
       .order('created_at', { ascending: false })
     if (data) setAllLeads(data)
   }
@@ -1553,14 +1706,12 @@ function AdminDashboard({ profile }) {
       .eq('id', reqId)
     loadApprovals()
   }
-
   async function denyRequest(reqId) {
     await supabase.from('vendor_categories')
       .update({ status: 'denied', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
       .eq('id', reqId)
     loadApprovals()
   }
-
   async function handleGenerateInvite() {
     setGenerating(true); setCopied(false)
     const code = generateInviteCode()
@@ -1573,12 +1724,10 @@ function AdminDashboard({ profile }) {
     } else { alert('Error: ' + error.message) }
     setGenerating(false)
   }
-
   async function copyToClipboard() {
     try {
       await navigator.clipboard.writeText(generatedLink)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
     } catch (e) { alert(generatedLink) }
   }
 
@@ -1609,7 +1758,6 @@ function AdminDashboard({ profile }) {
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* Tabs — now 5 tabs (Users, Vendors, Leads, Invites, Approvals) */}
         <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm overflow-x-auto">
           {[
             { k: 'users', label: t.users, count: allUsers.length },
@@ -1636,8 +1784,7 @@ function AdminDashboard({ profile }) {
                 {allUsers.map((u) => {
                   const isVendor = u.role === 'vendor'
                   return (
-                    <div key={u.id}
-                      onClick={isVendor ? () => setSelectedVendorId(u.id) : undefined}
+                    <div key={u.id} onClick={isVendor ? () => setSelectedVendorId(u.id) : undefined}
                       className={`border rounded-xl p-3 flex justify-between items-center ${isVendor ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                       style={{ borderColor: '#e0e0e0' }}>
                       <div>
@@ -1683,7 +1830,6 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
-        {/* LEADS TAB (admin) */}
         {tab === 'leads' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.leads} ({allLeads.length})</h3>
@@ -1700,7 +1846,10 @@ function AdminDashboard({ profile }) {
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize: 22 }}>{lead.categories?.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            <p className="font-semibold text-sm flex items-center gap-2" style={{ color: '#1B3A6B' }}>
+                              {catKey ? t[catKey] : '?'}
+                              {lead.urgent && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: '#C8202F' }}>⚡ {t.urgent}</span>}
+                            </p>
                             <p className="text-xs text-gray-500">{fmtDate(lead.created_at)}</p>
                           </div>
                         </div>
