@@ -1,10 +1,10 @@
 // =============================================
 // Entre Amigos — App.jsx
-// Phase 2D: Review system
-//   - Customer rates vendor after lead is completed (1-5 stars + comment)
-//   - Reviews go to admin moderation queue (pending)
-//   - Approved reviews shown publicly, vendor's avg displayed
-//   - Vendors below 3.5 avg (with 5+ reviews) flagged in admin
+// Phase 2E: Quote system
+//   - Vendors build quotes with line items (qty × unit price = total)
+//   - Quotes can be revised (new quote supersedes the old)
+//   - Customer sees quote with Accept / Decline buttons
+//   - Optional notes and valid-until date
 // =============================================
 
 import React, { useState, useEffect, createContext, useContext } from 'react'
@@ -22,8 +22,7 @@ const supabase = createClient(
 const T = {
   es: {
     tagline: 'Conectamos. Apoyamos. Crecemos Juntos.',
-    welcomeBack: 'Bienvenido',
-    welcomeSub: 'Inicia sesión para continuar',
+    welcomeBack: 'Bienvenido', welcomeSub: 'Inicia sesión para continuar',
     email: 'Correo', password: 'Contraseña',
     signIn: 'Iniciar Sesión', signOut: 'Salir',
     loading: 'Cargando...', errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
@@ -66,8 +65,7 @@ const T = {
     requestedAt: 'Solicitado', vendor: 'Proveedor', vendors: 'Proveedores',
     category: 'Categoría', dashboard: 'Inicio',
     cancel: 'Cancelar', done: 'Hecho', back: '← Regresar',
-    joinedOn: 'Se unió',
-    noPending: 'Sin solicitudes pendientes',
+    joinedOn: 'Se unió', noPending: 'Sin solicitudes pendientes',
     noApprovedYet: 'Sin categorías aprobadas', noDeniedYet: 'Sin categorías denegadas',
     revoke: 'Revocar', confirmRevoke: '¿Estás seguro de revocar esta categoría?',
     requestService: 'Solicitar Servicio',
@@ -98,7 +96,6 @@ const T = {
     claimNow: 'Aceptar Ahora', claimedByOther: 'Otro proveedor lo aceptó',
     missedLeads: 'Leads Perdidos', noMissed: 'Sin leads perdidos',
     missedAt: 'Perdido el', minutes: 'min', hours: 'hrs',
-    // ---- Reviews (Phase 2D) ----
     leaveReview: 'Calificar Servicio',
     leaveReviewDesc: 'Tu opinión ayuda a otros clientes',
     starsLabel: 'Calificación',
@@ -107,21 +104,50 @@ const T = {
     submitReview: 'Enviar Calificación',
     reviewSent: '¡Gracias por tu calificación!',
     reviewSentDesc: 'Tu calificación está en revisión y aparecerá pronto.',
-    reviewPending: 'Calificación pendiente',
-    rateNow: 'Calificar Ahora',
+    reviewPending: 'Calificación pendiente', rateNow: 'Calificar Ahora',
     reviews: 'Calificaciones', reviewsTab: 'Reseñas',
     noReviews: 'Sin calificaciones aprobadas todavía.',
     noReviewsPending: 'Sin calificaciones pendientes.',
     moderationQueue: 'Cola de Moderación',
-    rejectReview: 'Rechazar',
-    publishReview: 'Aprobar',
+    rejectReview: 'Rechazar', publishReview: 'Aprobar',
     flagged: 'Calificación baja',
-    avgRating: 'Promedio',
-    basedOn: 'basado en',
+    avgRating: 'Promedio', basedOn: 'basado en',
     review: 'reseña', reviewsPlural: 'reseñas',
     star: 'estrella', stars: 'estrellas',
     flaggedVendorWarning: '⚠ Este proveedor tiene calificación baja. Revisa su perfil.',
     onLead: 'Sobre el servicio',
+    // ---- Quotes (Phase 2E) ----
+    quote: 'Cotización', quotes: 'Cotizaciones',
+    createQuote: 'Crear Cotización', editQuote: 'Editar Cotización',
+    viewQuote: 'Ver Cotización', revising: 'Revisando',
+    sendQuoteBtn: 'Enviar Cotización',
+    quoteSent: '¡Cotización enviada!',
+    revisedQuote: 'Cotización Revisada',
+    lineItems: 'Conceptos', addItem: '+ Agregar Concepto',
+    itemDescription: 'Descripción', itemQty: 'Cant.', itemPrice: 'Precio',
+    itemDescPlaceholder: 'Ej: Póliza anual de seguro',
+    removeItem: 'Eliminar',
+    quoteTotal: 'TOTAL',
+    quoteNotes: 'Notas (términos, qué incluye, etc.)',
+    notesPlaceholder: 'Por ejemplo: Esta cotización incluye instalación y garantía de 1 año...',
+    validUntil: 'Válida hasta',
+    acceptQuote: 'Aceptar Cotización',
+    declineQuote: 'Rechazar',
+    quoteAccepted: '¡Cotización aceptada!',
+    quoteDeclined: 'Cotización rechazada',
+    quoteFromVendor: 'Cotización de',
+    quoteStatus_sent: 'Pendiente',
+    quoteStatus_accepted: 'Aceptada',
+    quoteStatus_declined: 'Rechazada',
+    quoteStatus_expired: 'Expirada',
+    quoteStatus_superseded: 'Reemplazada',
+    quoteStatus_draft: 'Borrador',
+    confirmDecline: '¿Estás seguro de rechazar esta cotización?',
+    noQuotes: 'Sin cotizaciones todavía',
+    quoteRevisedNote: 'Enviar una nueva cotización reemplaza la anterior',
+    needsItems: 'Agrega al menos un concepto',
+    needsDescAndPrice: 'Cada concepto necesita descripción y precio',
+    viewLineItems: 'Ver conceptos',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
@@ -168,8 +194,7 @@ const T = {
     requestedAt: 'Requested', vendor: 'Vendor', vendors: 'Vendors',
     category: 'Category', dashboard: 'Dashboard',
     cancel: 'Cancel', done: 'Done', back: '← Back',
-    joinedOn: 'Joined',
-    noPending: 'No pending requests',
+    joinedOn: 'Joined', noPending: 'No pending requests',
     noApprovedYet: 'No approved categories', noDeniedYet: 'No denied categories',
     revoke: 'Revoke', confirmRevoke: 'Are you sure you want to revoke this category?',
     requestService: 'Request Service',
@@ -200,30 +225,57 @@ const T = {
     claimNow: 'Claim Now', claimedByOther: 'Another vendor claimed it',
     missedLeads: 'Missed Leads', noMissed: 'No missed leads',
     missedAt: 'Missed on', minutes: 'min', hours: 'hrs',
-    // ---- Reviews (Phase 2D) ----
-    leaveReview: 'Rate Service',
-    leaveReviewDesc: 'Your feedback helps other customers',
+    leaveReview: 'Rate Service', leaveReviewDesc: 'Your feedback helps other customers',
     starsLabel: 'Rating',
     commentLabel: 'Comment (optional)',
     commentPlaceholder: 'Tell us about your experience...',
     submitReview: 'Submit Review',
     reviewSent: 'Thanks for your review!',
     reviewSentDesc: 'Your review is under review and will appear soon.',
-    reviewPending: 'Review pending',
-    rateNow: 'Rate Now',
+    reviewPending: 'Review pending', rateNow: 'Rate Now',
     reviews: 'Reviews', reviewsTab: 'Reviews',
     noReviews: 'No approved reviews yet.',
     noReviewsPending: 'No pending reviews.',
     moderationQueue: 'Moderation Queue',
-    rejectReview: 'Reject',
-    publishReview: 'Approve',
+    rejectReview: 'Reject', publishReview: 'Approve',
     flagged: 'Low rating',
-    avgRating: 'Average',
-    basedOn: 'based on',
+    avgRating: 'Average', basedOn: 'based on',
     review: 'review', reviewsPlural: 'reviews',
     star: 'star', stars: 'stars',
     flaggedVendorWarning: '⚠ This vendor has a low rating. Review their profile.',
     onLead: 'On lead',
+    // ---- Quotes (Phase 2E) ----
+    quote: 'Quote', quotes: 'Quotes',
+    createQuote: 'Create Quote', editQuote: 'Edit Quote',
+    viewQuote: 'View Quote', revising: 'Revising',
+    sendQuoteBtn: 'Send Quote',
+    quoteSent: 'Quote sent!',
+    revisedQuote: 'Revised Quote',
+    lineItems: 'Line Items', addItem: '+ Add Item',
+    itemDescription: 'Description', itemQty: 'Qty', itemPrice: 'Price',
+    itemDescPlaceholder: 'e.g. Annual insurance policy',
+    removeItem: 'Remove',
+    quoteTotal: 'TOTAL',
+    quoteNotes: 'Notes (terms, what\'s included, etc.)',
+    notesPlaceholder: 'For example: This quote includes installation and 1-year warranty...',
+    validUntil: 'Valid until',
+    acceptQuote: 'Accept Quote',
+    declineQuote: 'Decline',
+    quoteAccepted: 'Quote accepted!',
+    quoteDeclined: 'Quote declined',
+    quoteFromVendor: 'Quote from',
+    quoteStatus_sent: 'Pending',
+    quoteStatus_accepted: 'Accepted',
+    quoteStatus_declined: 'Declined',
+    quoteStatus_expired: 'Expired',
+    quoteStatus_superseded: 'Superseded',
+    quoteStatus_draft: 'Draft',
+    confirmDecline: 'Are you sure you want to decline this quote?',
+    noQuotes: 'No quotes yet',
+    quoteRevisedNote: 'Sending a new quote replaces the previous one',
+    needsItems: 'Add at least one item',
+    needsDescAndPrice: 'Each item needs description and price',
+    viewLineItems: 'View items',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
@@ -270,8 +322,7 @@ const T = {
     requestedAt: 'Solicitado', vendor: 'Fornecedor', vendors: 'Fornecedores',
     category: 'Categoria', dashboard: 'Início',
     cancel: 'Cancelar', done: 'Pronto', back: '← Voltar',
-    joinedOn: 'Entrou em',
-    noPending: 'Sem solicitações pendentes',
+    joinedOn: 'Entrou em', noPending: 'Sem solicitações pendentes',
     noApprovedYet: 'Sem categorias aprovadas', noDeniedYet: 'Sem categorias negadas',
     revoke: 'Revogar', confirmRevoke: 'Tem certeza que deseja revogar esta categoria?',
     requestService: 'Solicitar Serviço',
@@ -302,7 +353,6 @@ const T = {
     claimNow: 'Aceitar Agora', claimedByOther: 'Outro fornecedor aceitou',
     missedLeads: 'Leads Perdidos', noMissed: 'Nenhum lead perdido',
     missedAt: 'Perdido em', minutes: 'min', hours: 'hrs',
-    // ---- Reviews (Phase 2D) ----
     leaveReview: 'Avaliar Serviço',
     leaveReviewDesc: 'Sua opinião ajuda outros clientes',
     starsLabel: 'Avaliação',
@@ -311,21 +361,50 @@ const T = {
     submitReview: 'Enviar Avaliação',
     reviewSent: 'Obrigado pela sua avaliação!',
     reviewSentDesc: 'Sua avaliação está em revisão e aparecerá em breve.',
-    reviewPending: 'Avaliação pendente',
-    rateNow: 'Avaliar Agora',
+    reviewPending: 'Avaliação pendente', rateNow: 'Avaliar Agora',
     reviews: 'Avaliações', reviewsTab: 'Avaliações',
     noReviews: 'Sem avaliações aprovadas ainda.',
     noReviewsPending: 'Sem avaliações pendentes.',
     moderationQueue: 'Fila de Moderação',
-    rejectReview: 'Rejeitar',
-    publishReview: 'Aprovar',
+    rejectReview: 'Rejeitar', publishReview: 'Aprovar',
     flagged: 'Avaliação baixa',
-    avgRating: 'Média',
-    basedOn: 'baseado em',
+    avgRating: 'Média', basedOn: 'baseado em',
     review: 'avaliação', reviewsPlural: 'avaliações',
     star: 'estrela', stars: 'estrelas',
     flaggedVendorWarning: '⚠ Este fornecedor tem avaliação baixa. Revise o perfil.',
     onLead: 'Sobre o serviço',
+    // ---- Quotes (Phase 2E) ----
+    quote: 'Cotação', quotes: 'Cotações',
+    createQuote: 'Criar Cotação', editQuote: 'Editar Cotação',
+    viewQuote: 'Ver Cotação', revising: 'Revisando',
+    sendQuoteBtn: 'Enviar Cotação',
+    quoteSent: 'Cotação enviada!',
+    revisedQuote: 'Cotação Revisada',
+    lineItems: 'Itens', addItem: '+ Adicionar Item',
+    itemDescription: 'Descrição', itemQty: 'Qtd', itemPrice: 'Preço',
+    itemDescPlaceholder: 'Ex: Apólice anual de seguro',
+    removeItem: 'Remover',
+    quoteTotal: 'TOTAL',
+    quoteNotes: 'Notas (termos, o que inclui, etc.)',
+    notesPlaceholder: 'Por exemplo: Esta cotação inclui instalação e garantia de 1 ano...',
+    validUntil: 'Válida até',
+    acceptQuote: 'Aceitar Cotação',
+    declineQuote: 'Recusar',
+    quoteAccepted: 'Cotação aceita!',
+    quoteDeclined: 'Cotação recusada',
+    quoteFromVendor: 'Cotação de',
+    quoteStatus_sent: 'Pendente',
+    quoteStatus_accepted: 'Aceita',
+    quoteStatus_declined: 'Recusada',
+    quoteStatus_expired: 'Expirada',
+    quoteStatus_superseded: 'Substituída',
+    quoteStatus_draft: 'Rascunho',
+    confirmDecline: 'Tem certeza que deseja recusar esta cotação?',
+    noQuotes: 'Sem cotações ainda',
+    quoteRevisedNote: 'Enviar uma nova cotação substitui a anterior',
+    needsItems: 'Adicione pelo menos um item',
+    needsDescAndPrice: 'Cada item precisa de descrição e preço',
+    viewLineItems: 'Ver itens',
   },
 }
 
@@ -347,6 +426,11 @@ function fmtDate(d) {
   if (!d) return ''
   const date = new Date(d)
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function fmtMoney(n) {
+  const num = Number(n) || 0
+  return '$' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function fmtCountdown(deadlineIso, t) {
@@ -391,9 +475,6 @@ function Logo({ size = 'large' }) {
   )
 }
 
-// ---- Star display + picker components ----
-// readonly = show stars only (used in review lists)
-// interactive = clickable stars (used in submit form)
 function StarRating({ value, onChange, size = 'md', readonly = false }) {
   const sizes = { sm: 14, md: 24, lg: 36 }
   const fs = sizes[size]
@@ -421,7 +502,6 @@ function LangSwitcher({ inverted = false }) {
     { code: 'pt', label: 'PT', flag: '🇧🇷' },
   ]
   const current = langs.find((l) => l.code === lang)
-
   return (
     <div className="relative">
       <button onClick={() => setOpen(!open)}
@@ -492,6 +572,14 @@ function leadStatusBadge(status, t) {
     broadcast: { label: t.statusBroadcast, color: '#C8202F' },
   }
   return map[status] || { label: status, color: '#6B7280' }
+}
+
+function quoteStatusBadge(status, t) {
+  const colors = {
+    sent: '#E8A020', accepted: '#1F8A4C', declined: '#C8202F',
+    expired: '#6B7280', superseded: '#6B7280', draft: '#6B7280',
+  }
+  return { label: t['quoteStatus_' + status] || status, color: colors[status] || '#6B7280' }
 }
 
 // =============================================
@@ -721,7 +809,336 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
-// REVIEW MODAL — customer rates the vendor after a completed lead
+// QUOTE BUILDER MODAL — vendor creates / revises a quote
+// =============================================
+function QuoteBuilderModal({ lead, profile, existingQuote, onClose, onSuccess }) {
+  const { t } = useLang()
+  // Items state: array of { description, quantity, unit_price }
+  const [items, setItems] = useState([{ description: '', quantity: 1, unit_price: 0 }])
+  const [notes, setNotes] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  // If we're "revising" an existing quote, prefill its values
+  useEffect(() => {
+    if (existingQuote) {
+      // Load the quote's line items
+      supabase.from('quote_items').select('*').eq('quote_id', existingQuote.id).order('sort_order')
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setItems(data.map((i) => ({
+              description: i.description, quantity: i.quantity, unit_price: i.unit_price
+            })))
+          }
+        })
+      setNotes(existingQuote.notes || '')
+      if (existingQuote.valid_until) {
+        // Convert ISO to yyyy-mm-dd for the date input
+        setValidUntil(existingQuote.valid_until.split('T')[0])
+      }
+    }
+  }, [existingQuote])
+
+  // Calculate total live
+  const total = items.reduce((sum, item) => {
+    return sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0)
+  }, 0)
+
+  function updateItem(index, field, value) {
+    const next = [...items]
+    next[index] = { ...next[index], [field]: value }
+    setItems(next)
+  }
+
+  function addItem() {
+    setItems([...items, { description: '', quantity: 1, unit_price: 0 }])
+  }
+
+  function removeItem(index) {
+    if (items.length === 1) return // Always keep at least one item
+    setItems(items.filter((_, i) => i !== index))
+  }
+
+  async function submitQuote() {
+    setError('')
+    // Validation
+    if (items.length === 0) { setError(t.needsItems); return }
+    for (const item of items) {
+      if (!item.description || Number(item.unit_price) <= 0) {
+        setError(t.needsDescAndPrice); return
+      }
+    }
+
+    setBusy(true)
+    try {
+      // Step 1: create the new quote row (the supersede trigger handles old ones)
+      const { data: newQuote, error: qErr } = await supabase.from('quotes').insert({
+        lead_id: lead.id,
+        vendor_id: profile.id,
+        customer_id: lead.customer_id,
+        total: total,
+        notes: notes || null,
+        valid_until: validUntil ? new Date(validUntil).toISOString() : null,
+        status: 'sent',
+      }).select().single()
+      if (qErr) throw qErr
+
+      // Step 2: insert the line items
+      const itemRows = items.map((item, idx) => ({
+        quote_id: newQuote.id,
+        description: item.description,
+        quantity: Number(item.quantity) || 1,
+        unit_price: Number(item.unit_price) || 0,
+        line_total: (Number(item.quantity) || 1) * (Number(item.unit_price) || 0),
+        sort_order: idx,
+      }))
+      const { error: iErr } = await supabase.from('quote_items').insert(itemRows)
+      if (iErr) throw iErr
+
+      // Step 3: update lead status to 'quoted'
+      await supabase.from('leads').update({ status: 'quoted' }).eq('id', lead.id)
+
+      onSuccess()
+    } catch (e) {
+      setError(e.message || t.errGeneric)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[92vh] flex flex-col">
+        <h3 className="text-lg font-bold mb-1" style={{ color: '#1B3A6B' }}>
+          {existingQuote ? t.revisedQuote : t.createQuote}
+        </h3>
+        {existingQuote && (
+          <p className="text-xs italic text-gray-500 mb-3">{t.quoteRevisedNote}</p>
+        )}
+
+        <div className="overflow-y-auto flex-1 -mx-1 px-1">
+          {/* Line Items */}
+          <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#1B3A6B' }}>
+            {t.lineItems}
+          </label>
+          <div className="space-y-3 mb-4">
+            {items.map((item, idx) => (
+              <div key={idx} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
+                {/* Description full width */}
+                <input
+                  type="text"
+                  value={item.description}
+                  onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                  placeholder={t.itemDescPlaceholder}
+                  className="w-full px-3 py-2 rounded-lg border bg-gray-50 text-sm outline-none mb-2"
+                  style={{ borderColor: '#e0e0e0' }}
+                />
+                {/* Qty + price side by side */}
+                <div className="flex gap-2 items-end">
+                  <div className="w-16">
+                    <label className="block text-[10px] text-gray-500 mb-0.5">{t.itemQty}</label>
+                    <input
+                      type="number"
+                      min="1" step="1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
+                      className="w-full px-2 py-1.5 rounded-lg border bg-gray-50 text-sm outline-none text-center"
+                      style={{ borderColor: '#e0e0e0' }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-gray-500 mb-0.5">{t.itemPrice}</label>
+                    <input
+                      type="number"
+                      min="0" step="0.01"
+                      value={item.unit_price}
+                      onChange={(e) => updateItem(idx, 'unit_price', e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-2 py-1.5 rounded-lg border bg-gray-50 text-sm outline-none"
+                      style={{ borderColor: '#e0e0e0' }}
+                    />
+                  </div>
+                  <div className="text-right" style={{ minWidth: 70 }}>
+                    <label className="block text-[10px] text-gray-500 mb-0.5">=</label>
+                    <p className="text-sm font-bold py-1.5" style={{ color: '#1F8A4C' }}>
+                      {fmtMoney((Number(item.quantity) || 0) * (Number(item.unit_price) || 0))}
+                    </p>
+                  </div>
+                  {items.length > 1 && (
+                    <button onClick={() => removeItem(idx)}
+                      className="text-lg pb-1" style={{ color: '#C8202F' }}>✕</button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={addItem}
+            className="w-full py-2 rounded-xl border-2 border-dashed text-sm font-semibold mb-4"
+            style={{ borderColor: '#1B3A6B', color: '#1B3A6B' }}>
+            {t.addItem}
+          </button>
+
+          {/* TOTAL */}
+          <div className="border-t-2 pt-3 mb-4 flex justify-between items-center" style={{ borderColor: '#1B3A6B' }}>
+            <span className="font-bold text-sm" style={{ color: '#1B3A6B' }}>{t.quoteTotal}</span>
+            <span className="text-2xl font-bold" style={{ color: '#1F8A4C' }}>{fmtMoney(total)}</span>
+          </div>
+
+          {/* Notes */}
+          <div className="mb-3">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.quoteNotes}</label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
+              className="w-full px-3 py-2 rounded-lg border bg-gray-50 text-sm outline-none resize-none"
+              style={{ borderColor: '#e0e0e0' }} placeholder={t.notesPlaceholder} />
+          </div>
+
+          {/* Valid until */}
+          <div className="mb-3">
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.validUntil}</label>
+            <input type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border bg-gray-50 text-sm outline-none"
+              style={{ borderColor: '#e0e0e0' }} />
+          </div>
+        </div>
+
+        {error && (
+          <div className="text-xs text-center mb-2 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>
+        )}
+
+        <button onClick={submitQuote} disabled={busy || total <= 0}
+          className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40 mb-2"
+          style={{ backgroundColor: '#C8202F' }}>
+          {busy ? t.loading : t.sendQuoteBtn + ' — ' + fmtMoney(total)}
+        </button>
+        <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================
+// QUOTE VIEWER MODAL — customer or vendor views a quote
+// Customer sees Accept/Decline buttons; vendor sees read-only
+// =============================================
+function QuoteViewerModal({ quote, profile, role, onClose, onResponded }) {
+  const { t } = useLang()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('quote_items').select('*')
+        .eq('quote_id', quote.id).order('sort_order')
+      if (data) setItems(data)
+      setLoading(false)
+    }
+    load()
+  }, [quote.id])
+
+  async function acceptQuote() {
+    setBusy(true)
+    await supabase.from('quotes')
+      .update({ status: 'accepted', responded_at: new Date().toISOString() })
+      .eq('id', quote.id)
+    setBusy(false)
+    onResponded('accepted')
+  }
+
+  async function declineQuote() {
+    if (!window.confirm(t.confirmDecline)) return
+    setBusy(true)
+    await supabase.from('quotes')
+      .update({ status: 'declined', responded_at: new Date().toISOString() })
+      .eq('id', quote.id)
+    setBusy(false)
+    onResponded('declined')
+  }
+
+  const badge = quoteStatusBadge(quote.status, t)
+  const isCustomer = role === 'customer'
+  const canRespond = isCustomer && quote.status === 'sent'
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[92vh] flex flex-col">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="text-lg font-bold" style={{ color: '#1B3A6B' }}>{t.quote}</h3>
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>
+            {badge.label}
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">{fmtDate(quote.created_at)}</p>
+
+        <div className="overflow-y-auto flex-1 -mx-1 px-1">
+          {loading ? (
+            <p className="text-center text-gray-400 py-6">{t.loading}</p>
+          ) : (
+            <>
+              {/* Line items */}
+              <div className="space-y-2 mb-4">
+                {items.map((item) => (
+                  <div key={item.id} className="border rounded-xl p-3 flex items-center gap-3" style={{ borderColor: '#e0e0e0' }}>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold" style={{ color: '#1B3A6B' }}>{item.description}</p>
+                      <p className="text-xs text-gray-500">{item.quantity} × {fmtMoney(item.unit_price)}</p>
+                    </div>
+                    <p className="font-bold text-sm" style={{ color: '#1F8A4C' }}>{fmtMoney(item.line_total)}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="border-t-2 pt-3 mb-4 flex justify-between items-center" style={{ borderColor: '#1B3A6B' }}>
+                <span className="font-bold" style={{ color: '#1B3A6B' }}>{t.quoteTotal}</span>
+                <span className="text-2xl font-bold" style={{ color: '#1F8A4C' }}>{fmtMoney(quote.total)}</span>
+              </div>
+
+              {/* Notes */}
+              {quote.notes && (
+                <div className="rounded-xl p-3 mb-3 text-sm" style={{ background: '#FBF6EC', color: '#1B3A6B' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-gray-500">{t.quoteNotes.split(' (')[0]}</p>
+                  <p className="whitespace-pre-wrap">{quote.notes}</p>
+                </div>
+              )}
+
+              {/* Valid until */}
+              {quote.valid_until && (
+                <p className="text-xs text-gray-500 text-center mb-3">
+                  {t.validUntil}: {new Date(quote.valid_until).toLocaleDateString()}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        {canRespond && (
+          <div className="flex gap-2 mt-2 mb-2">
+            <button onClick={acceptQuote} disabled={busy}
+              className="flex-1 py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40"
+              style={{ backgroundColor: '#1F8A4C' }}>
+              ✓ {t.acceptQuote}
+            </button>
+            <button onClick={declineQuote} disabled={busy}
+              className="flex-1 py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40"
+              style={{ backgroundColor: '#C8202F' }}>
+              ✕ {t.declineQuote}
+            </button>
+          </div>
+        )}
+        <button onClick={onClose} className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>
+          {canRespond ? t.cancel : t.done}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================
+// REVIEW MODAL (from Phase 2D)
 // =============================================
 function ReviewModal({ lead, profile, onClose, onSuccess }) {
   const { t } = useLang()
@@ -735,12 +1152,8 @@ function ReviewModal({ lead, profile, onClose, onSuccess }) {
     setError('')
     setBusy(true)
     const { error } = await supabase.from('reviews').insert({
-      lead_id: lead.id,
-      vendor_id: lead.assigned_vendor_id,
-      customer_id: profile.id,
-      rating,
-      comment: comment || null,
-      status: 'pending',
+      lead_id: lead.id, vendor_id: lead.assigned_vendor_id,
+      customer_id: profile.id, rating, comment: comment || null, status: 'pending',
     })
     setBusy(false)
     if (error) { setError(error.message); return }
@@ -762,8 +1175,7 @@ function ReviewModal({ lead, profile, onClose, onSuccess }) {
 
         <div className="mb-4">
           <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.commentLabel}</label>
-          <textarea value={comment} onChange={(e) => setComment(e.target.value)}
-            rows={3}
+          <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3}
             className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none resize-none"
             style={{ borderColor: '#e0e0e0' }} placeholder={t.commentPlaceholder} />
         </div>
@@ -782,7 +1194,7 @@ function ReviewModal({ lead, profile, onClose, onSuccess }) {
 }
 
 // =============================================
-// LEAD REQUEST MODAL
+// LEAD REQUEST MODAL (from earlier phases)
 // =============================================
 function LeadRequestModal({ profile, category, onClose, onSuccess }) {
   const { t } = useLang()
@@ -803,12 +1215,8 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
       if (rpcErr) throw rpcErr
 
       const leadRow = {
-        customer_id: profile.id,
-        category_id: category.id,
-        customer_name: name,
-        customer_phone: phone,
-        details: details,
-        urgent: urgent,
+        customer_id: profile.id, category_id: category.id,
+        customer_name: name, customer_phone: phone, details: details, urgent: urgent,
         assigned_vendor_id: vendorId || null,
         assigned_at: vendorId ? new Date().toISOString() : null,
         status: vendorId ? 'assigned' : 'new',
@@ -850,34 +1258,25 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
 
         <div className="mb-4">
           <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A6B' }}>{t.tellUsMore}</label>
-          <textarea value={details} onChange={(e) => setDetails(e.target.value)}
-            rows={4}
+          <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={4}
             className="w-full px-3.5 py-2.5 rounded-xl border-[1.5px] bg-gray-50 text-sm outline-none resize-none"
             style={{ borderColor: '#e0e0e0' }} placeholder={t.detailsPlaceholder} />
         </div>
 
         <button onClick={() => setUrgent(!urgent)}
           className="w-full border rounded-xl p-3 flex items-center gap-3 text-left transition mb-2"
-          style={urgent
-            ? { borderColor: '#C8202F', background: '#FDECEA', borderWidth: 2 }
-            : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
+          style={urgent ? { borderColor: '#C8202F', background: '#FDECEA', borderWidth: 2 } : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
           <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-            style={urgent
-              ? { background: '#C8202F', color: 'white' }
-              : { background: 'white', border: '2px solid #d0d0d0' }}>
+            style={urgent ? { background: '#C8202F', color: 'white' } : { background: 'white', border: '2px solid #d0d0d0' }}>
             {urgent && '✓'}
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-sm" style={{ color: urgent ? '#9B1C10' : '#1B3A6B' }}>
-              ⚡ {t.markUrgent}
-            </p>
+            <p className="font-semibold text-sm" style={{ color: urgent ? '#9B1C10' : '#1B3A6B' }}>⚡ {t.markUrgent}</p>
             {urgent && <p className="text-xs mt-0.5" style={{ color: '#9B1C10' }}>{t.urgentNote}</p>}
           </div>
         </button>
 
-        {error && (
-          <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>
-        )}
+        {error && <div className="text-xs text-center mb-3 px-2 py-2 rounded-lg" style={{ background: '#FDECEA', color: '#9B1C10' }}>{error}</div>}
 
         <button onClick={submit} disabled={busy}
           className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 mb-2 mt-2"
@@ -891,16 +1290,18 @@ function LeadRequestModal({ profile, category, onClose, onSuccess }) {
 }
 
 // =============================================
-// CUSTOMER HOME (now shows "Rate Now" on completed leads)
+// CUSTOMER HOME — now with "View Quote" button on quoted leads
 // =============================================
 function CustomerHome({ profile }) {
   const { t } = useLang()
   const [tab, setTab] = useState('services')
   const [categories, setCategories] = useState([])
   const [myLeads, setMyLeads] = useState([])
-  const [myReviewLeadIds, setMyReviewLeadIds] = useState([]) // leads I've reviewed
+  const [myReviewLeadIds, setMyReviewLeadIds] = useState([])
+  const [latestQuotes, setLatestQuotes] = useState({}) // map leadId → latest sent quote
   const [leadModalCategory, setLeadModalCategory] = useState(null)
   const [reviewLead, setReviewLead] = useState(null)
+  const [viewQuote, setViewQuote] = useState(null)
   const [successMsg, setSuccessMsg] = useState(null)
   const [reviewSuccess, setReviewSuccess] = useState(false)
   const displayName = profile?.full_name || t.friend
@@ -923,7 +1324,25 @@ function CustomerHome({ profile }) {
     const { data } = await supabase.from('leads')
       .select('*, categories(*)').eq('customer_id', profile.id)
       .order('created_at', { ascending: false })
-    if (data) setMyLeads(data)
+    if (data) {
+      setMyLeads(data)
+      // Load latest 'sent' or 'accepted' quote per lead so we can show a button
+      const leadIds = data.map((l) => l.id)
+      if (leadIds.length > 0) {
+        const { data: quotes } = await supabase.from('quotes')
+          .select('*').in('lead_id', leadIds)
+          .in('status', ['sent', 'accepted', 'declined'])
+          .order('created_at', { ascending: false })
+        if (quotes) {
+          const map = {}
+          quotes.forEach((q) => {
+            // Only keep the most recent quote per lead (since they're ordered desc)
+            if (!map[q.lead_id]) map[q.lead_id] = q
+          })
+          setLatestQuotes(map)
+        }
+      }
+    }
   }
 
   async function loadMyReviews() {
@@ -946,6 +1365,12 @@ function CustomerHome({ profile }) {
     setReviewLead(null)
     setReviewSuccess(true)
     loadMyReviews()
+  }
+
+  function handleQuoteResponded(action) {
+    setViewQuote(null)
+    loadLeads()
+    alert(action === 'accepted' ? t.quoteAccepted : t.quoteDeclined)
   }
 
   const activeCount = myLeads.filter(l => ['assigned', 'claimed', 'quoted'].includes(l.status)).length
@@ -1024,6 +1449,7 @@ function CustomerHome({ profile }) {
                   const badge = leadStatusBadge(lead.status, t)
                   const canReview = lead.status === 'completed' && lead.assigned_vendor_id && !myReviewLeadIds.includes(lead.id)
                   const alreadyReviewed = myReviewLeadIds.includes(lead.id)
+                  const quote = latestQuotes[lead.id]
                   return (
                     <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
                       <div className="flex justify-between items-start mb-2">
@@ -1041,7 +1467,18 @@ function CustomerHome({ profile }) {
                       </div>
                       {lead.details && <p className="text-xs text-gray-600 mt-1 mb-2">{lead.details}</p>}
 
-                      {/* Show review button or 'already reviewed' note */}
+                      {/* View Quote button — visible if a quote exists */}
+                      {quote && (
+                        <button onClick={() => setViewQuote(quote)}
+                          className="w-full py-2 rounded-lg text-white text-xs font-semibold mt-2 flex items-center justify-center gap-2"
+                          style={{ backgroundColor: '#1B3A6B' }}>
+                          💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
+                            {quoteStatusBadge(quote.status, t).label}
+                          </span>
+                        </button>
+                      )}
+
                       {canReview && (
                         <button onClick={() => setReviewLead(lead)}
                           className="w-full py-2 rounded-lg text-white text-xs font-semibold mt-2"
@@ -1083,8 +1520,7 @@ function CustomerHome({ profile }) {
 
       {leadModalCategory && (
         <LeadRequestModal profile={profile} category={leadModalCategory}
-          onClose={() => setLeadModalCategory(null)}
-          onSuccess={handleLeadSuccess} />
+          onClose={() => setLeadModalCategory(null)} onSuccess={handleLeadSuccess} />
       )}
 
       {reviewLead && (
@@ -1092,7 +1528,11 @@ function CustomerHome({ profile }) {
           onClose={() => setReviewLead(null)} onSuccess={handleReviewSuccess} />
       )}
 
-      {/* Review success */}
+      {viewQuote && (
+        <QuoteViewerModal quote={viewQuote} profile={profile} role="customer"
+          onClose={() => setViewQuote(null)} onResponded={handleQuoteResponded} />
+      )}
+
       {reviewSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
@@ -1101,9 +1541,7 @@ function CustomerHome({ profile }) {
             <p className="text-sm text-gray-500 mb-4">{t.reviewSentDesc}</p>
             <button onClick={() => setReviewSuccess(false)}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm"
-              style={{ backgroundColor: '#1B3A6B' }}>
-              {t.done}
-            </button>
+              style={{ backgroundColor: '#1B3A6B' }}>{t.done}</button>
           </div>
         </div>
       )}
@@ -1118,14 +1556,10 @@ function CustomerHome({ profile }) {
             <h3 className="text-lg font-bold mb-2" style={{ color: '#1B3A6B' }}>
               {successMsg.vendorId ? t.leadSent : t.noVendorsAvailable}
             </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              {successMsg.vendorId ? t.leadSentDesc : ''}
-            </p>
+            <p className="text-sm text-gray-500 mb-4">{successMsg.vendorId ? t.leadSentDesc : ''}</p>
             <button onClick={() => { setSuccessMsg(null); setTab('history') }}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm"
-              style={{ backgroundColor: '#1B3A6B' }}>
-              {t.done}
-            </button>
+              style={{ backgroundColor: '#1B3A6B' }}>{t.done}</button>
           </div>
         </div>
       )}
@@ -1133,9 +1567,6 @@ function CustomerHome({ profile }) {
   )
 }
 
-// =============================================
-// COUNTDOWN component
-// =============================================
 function Countdown({ deadline }) {
   const { t } = useLang()
   const [_, setTick] = useState(0)
@@ -1153,7 +1584,7 @@ function Countdown({ deadline }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD — now shows their own rating
+// VENDOR DASHBOARD — now with Quote builder hooked up
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
@@ -1163,10 +1594,15 @@ function VendorDashboard({ profile }) {
   const [myLeads, setMyLeads] = useState([])
   const [broadcastLeads, setBroadcastLeads] = useState([])
   const [myStats, setMyStats] = useState(null)
+  // Map leadId → latest quote (for showing "View / Edit" instead of "Send Quote")
+  const [leadQuotes, setLeadQuotes] = useState({})
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  // Quote modal state
+  const [quoteBuilder, setQuoteBuilder] = useState(null) // { lead, existingQuote? }
+  const [viewQuote, setViewQuote] = useState(null)
 
   async function loadMyCategories() {
     const { data } = await supabase.from('vendor_categories')
@@ -1174,29 +1610,38 @@ function VendorDashboard({ profile }) {
       .order('requested_at', { ascending: false })
     if (data) setMyCategories(data)
   }
-
   async function loadAllCategories() {
     const { data } = await supabase.from('categories').select('*').eq('active', true)
     if (data) setAllCategories(data)
   }
-
   async function loadMyLeads() {
     const { data } = await supabase.from('leads')
       .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
       .eq('assigned_vendor_id', profile.id)
       .order('created_at', { ascending: false })
-    if (data) setMyLeads(data)
+    if (data) {
+      setMyLeads(data)
+      // Load latest quote per lead (sent, accepted, declined — skip superseded)
+      const leadIds = data.map((l) => l.id)
+      if (leadIds.length > 0) {
+        const { data: quotes } = await supabase.from('quotes')
+          .select('*').in('lead_id', leadIds).eq('vendor_id', profile.id)
+          .in('status', ['sent', 'accepted', 'declined'])
+          .order('created_at', { ascending: false })
+        if (quotes) {
+          const map = {}
+          quotes.forEach((q) => { if (!map[q.lead_id]) map[q.lead_id] = q })
+          setLeadQuotes(map)
+        }
+      }
+    }
   }
-
   async function loadBroadcastLeads() {
     const { data } = await supabase.from('leads')
       .select('*, categories(*), profiles!leads_customer_id_fkey(full_name, email)')
-      .eq('status', 'broadcast')
-      .order('broadcast_at', { ascending: false })
+      .eq('status', 'broadcast').order('broadcast_at', { ascending: false })
     if (data) setBroadcastLeads(data)
   }
-
-  // Load my own avg rating
   async function loadMyStats() {
     const { data } = await supabase.rpc('get_vendor_stats', { p_vendor_id: profile.id })
     if (data && data.length > 0) setMyStats(data[0])
@@ -1236,10 +1681,6 @@ function VendorDashboard({ profile }) {
     await supabase.from('leads').update({ status: 'claimed' }).eq('id', leadId)
     loadMyLeads()
   }
-  async function sendQuote(leadId) {
-    await supabase.from('leads').update({ status: 'quoted' }).eq('id', leadId)
-    loadMyLeads()
-  }
   async function completeLead(leadId) {
     await supabase.from('leads').update({ status: 'completed' }).eq('id', leadId)
     loadMyLeads()
@@ -1250,6 +1691,11 @@ function VendorDashboard({ profile }) {
     if (error) { alert('Error: ' + error.message); return }
     if (data === true) { loadMyLeads(); loadBroadcastLeads() }
     else { alert(t.claimedByOther); loadBroadcastLeads() }
+  }
+
+  function handleQuoteSuccess() {
+    setQuoteBuilder(null)
+    loadMyLeads()
   }
 
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
@@ -1267,7 +1713,6 @@ function VendorDashboard({ profile }) {
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* My rating card */}
         {myStats && myStats.review_count > 0 && (
           <div className="bg-white rounded-2xl shadow p-4 mb-4 flex items-center gap-4">
             <div className="text-center">
@@ -1331,9 +1776,7 @@ function VendorDashboard({ profile }) {
                             {lead.details && <p className="text-xs text-gray-600 mt-2 mb-2">{lead.details}</p>}
                             <button onClick={() => claimBroadcastLead(lead.id)}
                               className="w-full py-2 rounded-lg text-white text-xs font-semibold"
-                              style={{ backgroundColor: '#C8202F' }}>
-                              📢 {t.claimNow}
-                            </button>
+                              style={{ backgroundColor: '#C8202F' }}>📢 {t.claimNow}</button>
                           </div>
                         )
                       })}
@@ -1351,6 +1794,7 @@ function VendorDashboard({ profile }) {
                         const catKey = lead.categories?.key
                         const badge = leadStatusBadge(lead.status, t)
                         const showTimer = lead.status === 'assigned' && lead.claim_deadline
+                        const quote = leadQuotes[lead.id]
                         return (
                           <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
                             <div className="flex justify-between items-start mb-2">
@@ -1380,7 +1824,19 @@ function VendorDashboard({ profile }) {
                               {lead.details && <p className="text-gray-600 mt-2">{lead.details}</p>}
                             </div>
 
-                            <div className="flex gap-2 mt-3">
+                            {/* Quote summary bar if quote exists */}
+                            {quote && (
+                              <button onClick={() => setViewQuote(quote)}
+                                className="w-full py-2 mb-2 rounded-lg text-white text-xs font-semibold flex items-center justify-center gap-2"
+                                style={{ backgroundColor: '#1B3A6B' }}>
+                                💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
+                                  {quoteStatusBadge(quote.status, t).label}
+                                </span>
+                              </button>
+                            )}
+
+                            <div className="flex gap-2 mt-2">
                               {lead.status === 'assigned' && (
                                 <button onClick={() => claimLead(lead.id)}
                                   className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
@@ -1388,11 +1844,11 @@ function VendorDashboard({ profile }) {
                                   ✓ {t.claimLead}
                                 </button>
                               )}
-                              {lead.status === 'claimed' && (
-                                <button onClick={() => sendQuote(lead.id)}
+                              {(lead.status === 'claimed' || lead.status === 'quoted') && (
+                                <button onClick={() => setQuoteBuilder({ lead, existingQuote: quote })}
                                   className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
                                   style={{ backgroundColor: '#1B3A6B' }}>
-                                  💰 {t.sendQuote}
+                                  💰 {quote ? t.editQuote : t.createQuote}
                                 </button>
                               )}
                               {(lead.status === 'quoted' || lead.status === 'claimed') && (
@@ -1469,13 +1925,9 @@ function VendorDashboard({ profile }) {
                   return (
                     <button key={cat.id} onClick={() => toggleSelected(cat.id)}
                       className="w-full border rounded-xl p-3 flex items-center gap-3 text-left transition"
-                      style={isSelected
-                        ? { borderColor: '#1F8A4C', background: '#E6F5ED', borderWidth: 2 }
-                        : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
+                      style={isSelected ? { borderColor: '#1F8A4C', background: '#E6F5ED', borderWidth: 2 } : { borderColor: '#e0e0e0', borderWidth: 1.5 }}>
                       <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-                        style={isSelected
-                          ? { background: '#1F8A4C', color: 'white' }
-                          : { background: 'white', border: '2px solid #d0d0d0' }}>
+                        style={isSelected ? { background: '#1F8A4C', color: 'white' } : { background: 'white', border: '2px solid #d0d0d0' }}>
                         {isSelected && '✓'}
                       </div>
                       <span style={{ fontSize: 22 }}>{cat.icon}</span>
@@ -1494,8 +1946,7 @@ function VendorDashboard({ profile }) {
                 {selectedIds.length} {t.selectedCount}
               </div>
             )}
-            <button onClick={submitRequests}
-              disabled={selectedIds.length === 0 || submitting}
+            <button onClick={submitRequests} disabled={selectedIds.length === 0 || submitting}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40 mb-2"
               style={{ backgroundColor: '#C8202F' }}>
               {submitting ? t.loading : t.submitRequest} {selectedIds.length > 0 && `(${selectedIds.length})`}
@@ -1505,12 +1956,24 @@ function VendorDashboard({ profile }) {
           </div>
         </div>
       )}
+
+      {/* Quote builder modal */}
+      {quoteBuilder && (
+        <QuoteBuilderModal lead={quoteBuilder.lead} existingQuote={quoteBuilder.existingQuote}
+          profile={profile} onClose={() => setQuoteBuilder(null)} onSuccess={handleQuoteSuccess} />
+      )}
+
+      {/* Vendor's view of their own quote (read-only) */}
+      {viewQuote && (
+        <QuoteViewerModal quote={viewQuote} profile={profile} role="vendor"
+          onClose={() => setViewQuote(null)} onResponded={() => setViewQuote(null)} />
+      )}
     </div>
   )
 }
 
 // =============================================
-// VENDOR DETAIL — now also shows reviews + flag
+// VENDOR DETAIL (admin) — unchanged from Phase 2D
 // =============================================
 function VendorDetail({ vendorId, profile, onBack }) {
   const { t } = useLang()
@@ -1524,28 +1987,20 @@ function VendorDetail({ vendorId, profile, onBack }) {
   async function loadData() {
     const { data: v } = await supabase.from('profiles').select('*').eq('id', vendorId).single()
     if (v) setVendor(v)
-
     const { data: cats } = await supabase.from('vendor_categories')
       .select('*, categories(*)').eq('vendor_id', vendorId)
       .order('requested_at', { ascending: false })
     if (cats) setVendorCats(cats)
-
     const { data: missed } = await supabase.from('missed_leads')
       .select('*, leads(*, categories(*))').eq('vendor_id', vendorId)
       .order('missed_at', { ascending: false })
     if (missed) setMissedLeads(missed)
-
-    // Load all reviews (any status — admin can see all)
     const { data: reviews } = await supabase.from('reviews')
       .select('*, profiles!reviews_customer_id_fkey(full_name, email)')
-      .eq('vendor_id', vendorId)
-      .order('created_at', { ascending: false })
+      .eq('vendor_id', vendorId).order('created_at', { ascending: false })
     if (reviews) setVendorReviews(reviews)
-
-    // Load stats
     const { data: s } = await supabase.rpc('get_vendor_stats', { p_vendor_id: vendorId })
     if (s && s.length > 0) setStats(s[0])
-
     setLoading(false)
   }
 
@@ -1603,7 +2058,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* Flagged warning at top */}
         {stats?.below_threshold && (
           <div className="rounded-2xl p-3 mb-4 text-center text-xs font-semibold"
             style={{ background: '#FDECEA', color: '#9B1C10', border: '1.5px solid #C8202F' }}>
@@ -1623,7 +2077,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white mt-1 inline-block"
                 style={{ backgroundColor: '#1F8A4C' }}>{vendor?.role}</span>
             </div>
-            {/* Star rating */}
             {stats && stats.review_count > 0 && (
               <div className="text-right">
                 <div className="text-2xl font-bold" style={{ color: stats.below_threshold ? '#C8202F' : '#1F8A4C' }}>
@@ -1695,7 +2148,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        {/* Reviews about this vendor */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#E8A020' }}>●</span> {t.reviews} ({vendorReviews.length})
@@ -1719,7 +2171,6 @@ function VendorDetail({ vendorId, profile, onBack }) {
           )}
         </div>
 
-        {/* Missed leads */}
         <div className="bg-white rounded-2xl shadow p-4 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: '#1B3A6B' }}>
             <span style={{ color: '#C8202F' }}>●</span> {t.missedLeads} ({missedLeads.length})
@@ -1749,7 +2200,7 @@ function VendorDetail({ vendorId, profile, onBack }) {
 }
 
 // =============================================
-// ADMIN DASHBOARD — adds Reviews moderation tab
+// ADMIN DASHBOARD — leads tab now shows quote info
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
@@ -1758,6 +2209,7 @@ function AdminDashboard({ profile }) {
   const [invites, setInvites] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
   const [allLeads, setAllLeads] = useState([])
+  const [allLeadQuotes, setAllLeadQuotes] = useState({}) // leadId → latest quote
   const [pendingReviews, setPendingReviews] = useState([])
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [newRole, setNewRole] = useState('customer')
@@ -1765,6 +2217,7 @@ function AdminDashboard({ profile }) {
   const [generatedLink, setGeneratedLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [selectedVendorId, setSelectedVendorId] = useState(null)
+  const [viewQuote, setViewQuote] = useState(null)
 
   const allowedRoles = profile.role === 'owner'
     ? ['owner', 'manager', 'employee', 'vendor', 'customer']
@@ -1794,17 +2247,29 @@ function AdminDashboard({ profile }) {
         customer:profiles!leads_customer_id_fkey(full_name, email),
         vendor:profiles!leads_assigned_vendor_id_fkey(full_name, email)`)
       .order('created_at', { ascending: false })
-    if (data) setAllLeads(data)
+    if (data) {
+      setAllLeads(data)
+      // Load latest quote per lead
+      const leadIds = data.map((l) => l.id)
+      if (leadIds.length > 0) {
+        const { data: quotes } = await supabase.from('quotes')
+          .select('*').in('lead_id', leadIds)
+          .in('status', ['sent', 'accepted', 'declined'])
+          .order('created_at', { ascending: false })
+        if (quotes) {
+          const map = {}
+          quotes.forEach((q) => { if (!map[q.lead_id]) map[q.lead_id] = q })
+          setAllLeadQuotes(map)
+        }
+      }
+    }
   }
-  // Load pending reviews waiting for moderation
   async function loadPendingReviews() {
     const { data } = await supabase.from('reviews')
-      .select(`*,
-        customer:profiles!reviews_customer_id_fkey(full_name, email),
+      .select(`*, customer:profiles!reviews_customer_id_fkey(full_name, email),
         vendor:profiles!reviews_vendor_id_fkey(full_name, email),
         leads(*, categories(*))`)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+      .eq('status', 'pending').order('created_at', { ascending: false })
     if (data) setPendingReviews(data)
   }
 
@@ -1820,8 +2285,6 @@ function AdminDashboard({ profile }) {
       .eq('id', reqId)
     loadApprovals()
   }
-
-  // Approve / reject reviews
   async function approveReview(reviewId) {
     await supabase.from('reviews')
       .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: profile.id })
@@ -1901,9 +2364,7 @@ function AdminDashboard({ profile }) {
         {tab === 'users' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
-            {allUsers.length === 0 ? (
-              <p className="text-gray-500 text-sm">{t.noUsers}</p>
-            ) : (
+            {allUsers.length === 0 ? <p className="text-gray-500 text-sm">{t.noUsers}</p> : (
               <div className="space-y-2">
                 {allUsers.map((u) => {
                   const isVendor = u.role === 'vendor'
@@ -1930,9 +2391,7 @@ function AdminDashboard({ profile }) {
         {tab === 'vendors' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.vendors} ({vendors.length})</h3>
-            {vendors.length === 0 ? (
-              <p className="text-gray-500 text-sm">No vendors yet.</p>
-            ) : (
+            {vendors.length === 0 ? <p className="text-gray-500 text-sm">No vendors yet.</p> : (
               <div className="space-y-2">
                 {vendors.map((v) => (
                   <button key={v.id} onClick={() => setSelectedVendorId(v.id)}
@@ -1962,6 +2421,7 @@ function AdminDashboard({ profile }) {
                 {allLeads.map((lead) => {
                   const catKey = lead.categories?.key
                   const badge = leadStatusBadge(lead.status, t)
+                  const quote = allLeadQuotes[lead.id]
                   return (
                     <div key={lead.id} className="border rounded-xl p-3" style={{ borderColor: '#e0e0e0' }}>
                       <div className="flex justify-between items-start mb-2">
@@ -1982,6 +2442,16 @@ function AdminDashboard({ profile }) {
                         <p><span className="text-gray-500">{t.assignedTo}:</span> <span className="font-semibold" style={{ color: '#1F8A4C' }}>{lead.vendor?.full_name || lead.vendor?.email || '—'}</span></p>
                         {lead.details && <p className="text-gray-600 mt-1">{lead.details}</p>}
                       </div>
+                      {quote && (
+                        <button onClick={() => setViewQuote(quote)}
+                          className="w-full py-2 mt-2 rounded-lg text-white text-xs font-semibold flex items-center justify-center gap-2"
+                          style={{ backgroundColor: '#1B3A6B' }}>
+                          💰 {t.viewQuote} — {fmtMoney(quote.total)}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ background: quoteStatusBadge(quote.status, t).color }}>
+                            {quoteStatusBadge(quote.status, t).label}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   )
                 })}
@@ -1990,7 +2460,6 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
-        {/* REVIEWS MODERATION TAB */}
         {tab === 'reviews' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.moderationQueue} ({pendingReviews.length})</h3>
@@ -2148,6 +2617,12 @@ function AdminDashboard({ profile }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Admin's read-only view of a quote */}
+      {viewQuote && (
+        <QuoteViewerModal quote={viewQuote} profile={profile} role="admin"
+          onClose={() => setViewQuote(null)} onResponded={() => setViewQuote(null)} />
       )}
     </div>
   )
