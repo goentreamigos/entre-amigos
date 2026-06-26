@@ -1,6 +1,7 @@
 // =============================================
 // Entre Amigos — App.jsx
 // Phase 2A: Vendor profile + category requests + admin approval queue
+// + Language switcher on logged-in screens
 // Stack: React + Vite + Tailwind + Supabase
 // Roles: owner | manager | employee | vendor | customer
 // Languages: Spanish (default) | English | Portuguese
@@ -74,18 +75,17 @@ const T = {
     roleEmployee: 'Empleado',
     roleVendor: 'Proveedor',
     roleCustomer: 'Cliente',
-    // ---- Vendor categories (Phase 2A) ----
     myCategories: 'Mis Categorías',
     requestCategory: 'Solicitar Categoría',
     requestNewCategory: 'Solicitar Nueva Categoría',
-    pendingApproval: 'Pendiente de Aprobación',
+    pendingApproval: 'Pendiente',
     approved: 'Aprobado',
     denied: 'Denegado',
     noCategoriesYet: 'Aún no has solicitado categorías. Solicita una para empezar a recibir clientes.',
     available: 'Disponibles',
     requestSent: 'Solicitud enviada',
     cancelRequest: 'Cancelar',
-    approvalQueue: 'Cola de Aprobaciones',
+    approvalQueue: 'Aprobaciones',
     noApprovals: 'No hay solicitudes pendientes.',
     approveBtn: 'Aprobar',
     denyBtn: 'Denegar',
@@ -93,6 +93,8 @@ const T = {
     vendor: 'Proveedor',
     category: 'Categoría',
     dashboard: 'Inicio',
+    cancel: 'Cancelar',
+    done: 'Hecho',
   },
   en: {
     tagline: 'We Connect. We Support. We Grow Together.',
@@ -149,18 +151,17 @@ const T = {
     roleEmployee: 'Employee',
     roleVendor: 'Vendor',
     roleCustomer: 'Customer',
-    // ---- Vendor categories (Phase 2A) ----
     myCategories: 'My Categories',
     requestCategory: 'Request Category',
     requestNewCategory: 'Request New Category',
-    pendingApproval: 'Pending Approval',
+    pendingApproval: 'Pending',
     approved: 'Approved',
     denied: 'Denied',
     noCategoriesYet: 'You haven\'t requested any categories yet. Request one to start receiving leads.',
     available: 'Available',
     requestSent: 'Request sent',
     cancelRequest: 'Cancel',
-    approvalQueue: 'Approval Queue',
+    approvalQueue: 'Approvals',
     noApprovals: 'No pending requests.',
     approveBtn: 'Approve',
     denyBtn: 'Deny',
@@ -168,6 +169,8 @@ const T = {
     vendor: 'Vendor',
     category: 'Category',
     dashboard: 'Dashboard',
+    cancel: 'Cancel',
+    done: 'Done',
   },
   pt: {
     tagline: 'Conectamos. Apoiamos. Crescemos Juntos.',
@@ -224,18 +227,17 @@ const T = {
     roleEmployee: 'Funcionário',
     roleVendor: 'Fornecedor',
     roleCustomer: 'Cliente',
-    // ---- Vendor categories (Phase 2A) ----
     myCategories: 'Minhas Categorias',
     requestCategory: 'Solicitar Categoria',
     requestNewCategory: 'Solicitar Nova Categoria',
-    pendingApproval: 'Aguardando Aprovação',
+    pendingApproval: 'Pendente',
     approved: 'Aprovado',
     denied: 'Negado',
     noCategoriesYet: 'Você ainda não solicitou categorias. Solicite uma para começar a receber clientes.',
     available: 'Disponíveis',
     requestSent: 'Solicitação enviada',
     cancelRequest: 'Cancelar',
-    approvalQueue: 'Fila de Aprovação',
+    approvalQueue: 'Aprovações',
     noApprovals: 'Nenhuma solicitação pendente.',
     approveBtn: 'Aprovar',
     denyBtn: 'Negar',
@@ -243,13 +245,14 @@ const T = {
     vendor: 'Fornecedor',
     category: 'Categoria',
     dashboard: 'Início',
+    cancel: 'Cancelar',
+    done: 'Pronto',
   },
 }
 
 const LangContext = createContext({ lang: 'es', t: T.es, setLang: () => {} })
 const useLang = () => useContext(LangContext)
 
-// ---- Service tiles config (matches categories table) ----
 const TILES = [
   { key: 'insurance', icon: '🛡️' },
   { key: 'doctor', icon: '🩺' },
@@ -261,12 +264,11 @@ const TILES = [
   { key: 'education', icon: '🎓' },
 ]
 
-// ---- Helper: generate a random short invite code ----
 function generateInviteCode() {
   return Math.random().toString(36).substring(2, 10).toUpperCase()
 }
 
-// ---- LOGO COMPONENT ----
+// ---- LOGO ----
 function Logo({ size = 'large' }) {
   const dim = size === 'large' ? 'w-32 h-32' : size === 'medium' ? 'w-20 h-20' : 'w-14 h-14'
   return (
@@ -287,10 +289,53 @@ function Logo({ size = 'large' }) {
         <circle cx="70" cy="85" r="8" fill="#FBF6EC" />
         <path d="M 55 110 Q 70 95 85 110 L 85 125 L 55 125 Z" fill="#FBF6EC" />
         <circle cx="130" cy="85" r="8" fill="#FBF6EC" />
-        <path d="M 115 110 Q 130 95 145 110 L 145 125 L 115 125 Z" fill="#FBF6EC" />
+        <path d="M 115 110 Q 130 95 145 110 L 115 125 L 115 125 Z" fill="#FBF6EC" />
         <circle cx="100" cy="78" r="9" fill="#FBF6EC" />
         <path d="M 83 108 Q 100 90 117 108 L 117 125 L 83 125 Z" fill="#FBF6EC" />
       </svg>
+    </div>
+  )
+}
+
+// ---- Language Switcher (compact, for headers) ----
+// Shows current language as a flag button. Clicking opens a small menu.
+function LangSwitcher({ inverted = false }) {
+  const { lang, setLang } = useLang()
+  const [open, setOpen] = useState(false)
+  const langs = [
+    { code: 'es', label: 'ES', flag: '🇲🇽' },
+    { code: 'en', label: 'EN', flag: '🇺🇸' },
+    { code: 'pt', label: 'PT', flag: '🇧🇷' },
+  ]
+  const current = langs.find((l) => l.code === lang)
+
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)}
+        className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold"
+        style={inverted
+          ? { background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.25)', color: 'white' }
+          : { background: '#FBF6EC', border: '1px solid #e0e0e0', color: '#1B3A6B' }}>
+        {current.flag}
+      </button>
+      {open && (
+        <>
+          {/* Click backdrop to close */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* Dropdown menu */}
+          <div className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border overflow-hidden" style={{ borderColor: '#e0e0e0', minWidth: 120 }}>
+            {langs.map((l) => (
+              <button key={l.code} onClick={() => { setLang(l.code); setOpen(false) }}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                style={{ color: lang === l.code ? '#C8202F' : '#1B3A6B', fontWeight: lang === l.code ? 700 : 500 }}>
+                <span>{l.flag}</span>
+                <span>{l.label}</span>
+                {lang === l.code && <span className="ml-auto">✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -305,9 +350,12 @@ function AppHeader({ profile, subtitle }) {
           <Logo size="small" />
           <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>entre amigos</div>
         </div>
-        <button onClick={() => supabase.auth.signOut()} className="text-white text-sm font-semibold bg-white/20 border border-white/25 px-3 py-1.5 rounded-lg">
-          {t.signOut}
-        </button>
+        <div className="flex items-center gap-2">
+          <LangSwitcher inverted={true} />
+          <button onClick={() => supabase.auth.signOut()} className="text-white text-sm font-semibold bg-white/20 border border-white/25 px-3 py-1.5 rounded-lg">
+            {t.signOut}
+          </button>
+        </div>
       </div>
       <div className="text-white/85 text-sm">{t.goodDay}</div>
       <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 700 }}>
@@ -319,7 +367,7 @@ function AppHeader({ profile, subtitle }) {
 }
 
 // =============================================
-// AUTH SCREEN (login only)
+// AUTH SCREEN
 // =============================================
 function AuthScreen() {
   const { lang, t, setLang } = useLang()
@@ -559,7 +607,7 @@ function InviteSignupScreen({ inviteCode }) {
 }
 
 // =============================================
-// CUSTOMER HOME
+// CUSTOMER HOME (now uses LangSwitcher in header)
 // =============================================
 function CustomerHome({ profile }) {
   const { t } = useLang()
@@ -582,7 +630,8 @@ function CustomerHome({ profile }) {
             <Logo size="small" />
             <div className="text-white" style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 700 }}>entre amigos</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <LangSwitcher inverted={true} />
             <button className="w-9 h-9 rounded-lg bg-white/20 border border-white/25 flex items-center justify-center text-white">🔔</button>
             <button onClick={() => supabase.auth.signOut()}
               className="w-9 h-9 rounded-lg bg-white/20 border border-white/25 flex items-center justify-center text-white"
@@ -648,17 +697,15 @@ function CustomerHome({ profile }) {
 }
 
 // =============================================
-// VENDOR DASHBOARD — now functional with categories!
+// VENDOR DASHBOARD
 // =============================================
 function VendorDashboard({ profile }) {
   const { t } = useLang()
-  const [tab, setTab] = useState('dashboard')
   const [myCategories, setMyCategories] = useState([])
   const [allCategories, setAllCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [showRequestModal, setShowRequestModal] = useState(false)
 
-  // Load my requested/approved categories
   async function loadMyCategories() {
     const { data } = await supabase
       .from('vendor_categories')
@@ -668,7 +715,6 @@ function VendorDashboard({ profile }) {
     if (data) setMyCategories(data)
   }
 
-  // Load full category list (so vendor can request new ones)
   async function loadAllCategories() {
     const { data } = await supabase.from('categories').select('*').eq('active', true)
     if (data) setAllCategories(data)
@@ -678,30 +724,20 @@ function VendorDashboard({ profile }) {
     Promise.all([loadMyCategories(), loadAllCategories()]).then(() => setLoading(false))
   }, [])
 
-  // Request a new category
   async function requestCategory(categoryId) {
     const { error } = await supabase.from('vendor_categories').insert({
-      vendor_id: profile.id,
-      category_id: categoryId,
-      status: 'pending',
+      vendor_id: profile.id, category_id: categoryId, status: 'pending',
     })
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      await loadMyCategories()
-      setShowRequestModal(false)
-    }
+    if (error) { alert('Error: ' + error.message) }
+    else { await loadMyCategories(); setShowRequestModal(false) }
   }
 
-  // Cancel a pending request
   async function cancelRequest(reqId) {
     const { error } = await supabase.from('vendor_categories').delete().eq('id', reqId)
     if (!error) loadMyCategories()
   }
 
-  // Build a list of category IDs the vendor has already requested or been approved for
   const myCategoryIds = myCategories.map((mc) => mc.category_id)
-  // Categories the vendor has NOT yet requested
   const availableCategories = allCategories.filter((c) => !myCategoryIds.includes(c.id))
 
   function statusBadge(status) {
@@ -719,12 +755,9 @@ function VendorDashboard({ profile }) {
           <div className="text-center text-gray-400 py-10">{t.loading}</div>
         ) : (
           <>
-            {/* My Categories card */}
             <div className="bg-white rounded-2xl shadow p-4 mb-5">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold" style={{ color: '#1B3A6B' }}>
-                  {t.myCategories} ({myCategories.length})
-                </h3>
+                <h3 className="font-bold" style={{ color: '#1B3A6B' }}>{t.myCategories} ({myCategories.length})</h3>
                 <button onClick={() => setShowRequestModal(true)}
                   className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
                   style={{ backgroundColor: '#C8202F' }}>
@@ -743,21 +776,14 @@ function VendorDashboard({ profile }) {
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize: 20 }}>{mc.categories?.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>
-                              {catKey ? t[catKey] : '?'}
-                            </p>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
                             {mc.notes && <p className="text-xs text-gray-500">{mc.notes}</p>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>
-                            {badge.label}
-                          </span>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: badge.color }}>{badge.label}</span>
                           {mc.status === 'pending' && (
-                            <button onClick={() => cancelRequest(mc.id)}
-                              className="text-xs" style={{ color: '#C8202F' }}>
-                              ✕
-                            </button>
+                            <button onClick={() => cancelRequest(mc.id)} className="text-xs" style={{ color: '#C8202F' }}>✕</button>
                           )}
                         </div>
                       </div>
@@ -766,20 +792,17 @@ function VendorDashboard({ profile }) {
                 </div>
               )}
             </div>
-
             <p className="text-xs text-center text-gray-500">{t.comingSoon}: leads & quotes</p>
           </>
         )}
       </div>
 
-      {/* Request Category Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4" style={{ color: '#1B3A6B' }}>{t.requestNewCategory}</h3>
-
             {availableCategories.length === 0 ? (
-              <p className="text-sm text-gray-500 mb-4">No hay categorías disponibles para solicitar.</p>
+              <p className="text-sm text-gray-500 mb-4">—</p>
             ) : (
               <div className="space-y-2 mb-4">
                 {availableCategories.map((cat) => (
@@ -791,16 +814,13 @@ function VendorDashboard({ profile }) {
                       <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{t[cat.key]}</p>
                       <p className="text-xs text-gray-500">{t[cat.key + 'Sub']}</p>
                     </div>
-                    <span className="text-xs" style={{ color: '#C8202F' }}>+ {t.requestSent.split(' ')[0]}</span>
+                    <span className="text-xs" style={{ color: '#C8202F' }}>+</span>
                   </button>
                 ))}
               </div>
             )}
-
             <button onClick={() => setShowRequestModal(false)}
-              className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>
-              Cancel
-            </button>
+              className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
           </div>
         </div>
       )}
@@ -809,12 +829,11 @@ function VendorDashboard({ profile }) {
 }
 
 // =============================================
-// ADMIN DASHBOARD (owner / manager / employee)
-// Now with tabs: Users + Invites + Approval Queue
+// ADMIN DASHBOARD
 // =============================================
 function AdminDashboard({ profile }) {
   const { t } = useLang()
-  const [tab, setTab] = useState('users') // users | invites | approvals
+  const [tab, setTab] = useState('users')
   const [allUsers, setAllUsers] = useState([])
   const [invites, setInvites] = useState([])
   const [pendingApprovals, setPendingApprovals] = useState([])
@@ -829,9 +848,7 @@ function AdminDashboard({ profile }) {
     : ['vendor', 'customer']
 
   useEffect(() => {
-    loadUsers()
-    loadInvites()
-    loadApprovals()
+    loadUsers(); loadInvites(); loadApprovals()
   }, [])
 
   async function loadUsers() {
@@ -844,7 +861,6 @@ function AdminDashboard({ profile }) {
     if (data) setInvites(data)
   }
 
-  // Load pending category approval requests with vendor + category info joined
   async function loadApprovals() {
     const { data } = await supabase
       .from('vendor_categories')
@@ -854,7 +870,6 @@ function AdminDashboard({ profile }) {
     if (data) setPendingApprovals(data)
   }
 
-  // Approve a vendor category request
   async function approveRequest(reqId) {
     const { error } = await supabase
       .from('vendor_categories')
@@ -863,7 +878,6 @@ function AdminDashboard({ profile }) {
     if (!error) loadApprovals()
   }
 
-  // Deny a vendor category request
   async function denyRequest(reqId) {
     const { error } = await supabase
       .from('vendor_categories')
@@ -873,16 +887,14 @@ function AdminDashboard({ profile }) {
   }
 
   async function handleGenerateInvite() {
-    setGenerating(true)
-    setCopied(false)
+    setGenerating(true); setCopied(false)
     const code = generateInviteCode()
     const { error } = await supabase.from('invites').insert({
       code, role: newRole, invited_by: profile.id,
     })
     if (!error) {
       const link = `${window.location.origin}/?invite=${code}`
-      setGeneratedLink(link)
-      loadInvites()
+      setGeneratedLink(link); loadInvites()
     } else {
       alert('Error: ' + error.message)
     }
@@ -894,9 +906,7 @@ function AdminDashboard({ profile }) {
       await navigator.clipboard.writeText(generatedLink)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (e) {
-      alert(generatedLink)
-    }
+    } catch (e) { alert(generatedLink) }
   }
 
   function roleColor(role) {
@@ -919,24 +929,20 @@ function AdminDashboard({ profile }) {
 
       <div className="-mt-5 rounded-t-3xl px-5 py-6 flex-1" style={{ background: '#FBF6EC' }}>
 
-        {/* Tab switcher */}
         <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
           {[
             { k: 'users', label: t.users, count: allUsers.length },
             { k: 'invites', label: t.activeInvites.split(' ')[0], count: invites.filter(i => !i.used && new Date(i.expires_at) > new Date()).length },
-            { k: 'approvals', label: t.approvalQueue.split(' ')[0], count: pendingApprovals.length },
+            { k: 'approvals', label: t.approvalQueue, count: pendingApprovals.length },
           ].map((tabItem) => (
             <button key={tabItem.k} onClick={() => setTab(tabItem.k)}
               className="flex-1 py-2 rounded-xl text-xs font-semibold transition"
-              style={tab === tabItem.k
-                ? { background: '#1B3A6B', color: 'white' }
-                : { color: '#666' }}>
+              style={tab === tabItem.k ? { background: '#1B3A6B', color: 'white' } : { color: '#666' }}>
               {tabItem.label} ({tabItem.count})
             </button>
           ))}
         </div>
 
-        {/* USERS TAB */}
         {tab === 'users' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.users} ({allUsers.length})</h3>
@@ -950,9 +956,7 @@ function AdminDashboard({ profile }) {
                       <p className="font-semibold" style={{ color: '#1B3A6B' }}>{u.full_name || '(sin nombre)'}</p>
                       <p className="text-xs text-gray-500">{u.email}</p>
                     </div>
-                    <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: roleColor(u.role) }}>
-                      {u.role}
-                    </span>
+                    <span className="text-xs font-bold px-3 py-1 rounded-full text-white" style={{ backgroundColor: roleColor(u.role) }}>{u.role}</span>
                   </div>
                 ))}
               </div>
@@ -960,7 +964,6 @@ function AdminDashboard({ profile }) {
           </div>
         )}
 
-        {/* INVITES TAB */}
         {tab === 'invites' && (
           <>
             <button onClick={() => { setShowInviteModal(true); setGeneratedLink(''); setNewRole('customer') }}
@@ -984,15 +987,11 @@ function AdminDashboard({ profile }) {
                             <p className="font-mono font-bold text-sm" style={{ color: '#1B3A6B' }}>{inv.code}</p>
                             <p className="text-xs text-gray-500">Role: <span className="font-semibold">{inv.role}</span></p>
                           </div>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: status.color }}>
-                            {status.label}
-                          </span>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: status.color }}>{status.label}</span>
                         </div>
                         {!inv.used && (
                           <button onClick={() => { navigator.clipboard.writeText(link); alert(t.copied) }}
-                            className="text-xs mt-1" style={{ color: '#C8202F' }}>
-                            📋 {t.copyLink}
-                          </button>
+                            className="text-xs mt-1" style={{ color: '#C8202F' }}>📋 {t.copyLink}</button>
                         )}
                       </div>
                     )
@@ -1003,7 +1002,6 @@ function AdminDashboard({ profile }) {
           </>
         )}
 
-        {/* APPROVALS TAB */}
         {tab === 'approvals' && (
           <div className="bg-white rounded-2xl shadow p-4">
             <h3 className="font-bold mb-3" style={{ color: '#1B3A6B' }}>{t.approvalQueue} ({pendingApprovals.length})</h3>
@@ -1020,26 +1018,18 @@ function AdminDashboard({ profile }) {
                         <div className="flex items-center gap-2">
                           <span style={{ fontSize: 22 }}>{req.categories?.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>
-                              {catKey ? t[catKey] : '?'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {t.vendor}: {vendor?.full_name || vendor?.email || '(unknown)'}
-                            </p>
+                            <p className="font-semibold text-sm" style={{ color: '#1B3A6B' }}>{catKey ? t[catKey] : '?'}</p>
+                            <p className="text-xs text-gray-500">{t.vendor}: {vendor?.full_name || vendor?.email || '(?)'}</p>
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-2">
                         <button onClick={() => approveRequest(req.id)}
                           className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
-                          style={{ backgroundColor: '#1F8A4C' }}>
-                          ✓ {t.approveBtn}
-                        </button>
+                          style={{ backgroundColor: '#1F8A4C' }}>✓ {t.approveBtn}</button>
                         <button onClick={() => denyRequest(req.id)}
                           className="flex-1 py-2 rounded-lg text-white text-xs font-semibold"
-                          style={{ backgroundColor: '#C8202F' }}>
-                          ✕ {t.denyBtn}
-                        </button>
+                          style={{ backgroundColor: '#C8202F' }}>✕ {t.denyBtn}</button>
                       </div>
                     </div>
                   )
@@ -1050,12 +1040,10 @@ function AdminDashboard({ profile }) {
         )}
       </div>
 
-      {/* Invite Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-6 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-bold mb-4" style={{ color: '#1B3A6B' }}>{t.inviteUser}</h3>
-
             {!generatedLink ? (
               <>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#1B3A6B' }}>{t.selectRole}</label>
@@ -1076,9 +1064,7 @@ function AdminDashboard({ profile }) {
                   {generating ? t.loading : t.generateInvite}
                 </button>
                 <button onClick={() => setShowInviteModal(false)}
-                  className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>
-                  Cancel
-                </button>
+                  className="w-full py-2 text-sm" style={{ color: '#1B3A6B' }}>{t.cancel}</button>
               </>
             ) : (
               <>
@@ -1092,9 +1078,7 @@ function AdminDashboard({ profile }) {
                   {copied ? '✓ ' + t.copied : '📋 ' + t.copyLink}
                 </button>
                 <button onClick={() => setShowInviteModal(false)}
-                  className="w-full py-2 text-sm" style={{ color: '#C8202F' }}>
-                  Done
-                </button>
+                  className="w-full py-2 text-sm" style={{ color: '#C8202F' }}>{t.done}</button>
               </>
             )}
           </div>
@@ -1105,16 +1089,30 @@ function AdminDashboard({ profile }) {
 }
 
 // =============================================
-// ROOT APP
+// ROOT APP — Detects browser language on first load
 // =============================================
 export default function App() {
-  const [lang, setLang] = useState('es')
+  // Detect browser language on first load (en/es/pt only)
+  const detectLang = () => {
+    const stored = localStorage.getItem('ea_lang')
+    if (stored && ['es', 'en', 'pt'].includes(stored)) return stored
+    const browser = (navigator.language || 'es').toLowerCase().slice(0, 2)
+    if (['es', 'en', 'pt'].includes(browser)) return browser
+    return 'es' // default to Spanish (target audience)
+  }
+
+  const [lang, setLangState] = useState(detectLang)
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [inviteCode, setInviteCode] = useState(null)
 
-  // Check URL for invite code on first load
+  // Save language preference whenever it changes
+  const setLang = (newLang) => {
+    setLangState(newLang)
+    localStorage.setItem('ea_lang', newLang)
+  }
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('invite')
